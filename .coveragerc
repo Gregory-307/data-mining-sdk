@@ -1,0 +1,15 @@
+[run]
+branch = True
+
+[report]
+# Omit legacy sync scrapers and tests when calculating coverage.
+omit =
+    Data_Mining/scrapers/*
+    Data_Mining/utils/*
+    Data_Mining/resources/*
+    */tests/*
+    new_scraper/*
+    Data_Mining/browser.py
+
+precision = 1
+show_missing = True 

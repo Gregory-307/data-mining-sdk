@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=67", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "data-mining-sdk"
+version = "0.1.0"
+description = "Standalone async scraper & keyword toolkit distilled from legacy Stock-Algorithm project"
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "Stock Algo Team"}]
+
+dependencies = [
+    "httpx>=0.28",
+    "beautifulsoup4>=4.13",
+    "pandas>=2.0",
+    "yfinance>=0.2.33",
+    "pytrends>=4.9",
+    "PyYAML>=6.0",
+    "python-dotenv>=1.0",
+    "structlog>=23.2",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7.4", "pytest-asyncio>=0.21"]
+docs = ["pdoc3>=0.10"]
+browser = ["selenium>=4.21", "webdriver-manager>=4.0"]
+
+[tool.setuptools.packages.find]
+include = ["Data_Mining", "Data_Mining.*"]
+
+[tool.setuptools.package-data]
+"Data_Mining.resources" = ["*.txt"] 

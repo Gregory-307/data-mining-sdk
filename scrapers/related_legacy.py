@@ -1,0 +1,64 @@
+from __future__ import annotations
+
+"""Legacy RelatedWords scraper using simple HTML parsing (synchronous).
+Intentionally preserved from the original code path for cases where the new
+JSON API is blocked.
+"""
+
+import os, random, json, re
+import requests
+from bs4 import BeautifulSoup
+
+from typing import List
+from ..utils.http import _DEFAULT_UA
+
+HTML_URL = "https://relatedwords.org/relatedto/{}"
+API_URL = "https://relatedwords.org/api/related?term={}&max=50"
+
+__all__ = ["related_words_sync"]
+
+
+def _ensure_headers(hdrs: dict | None) -> dict:
+    hdrs = hdrs.copy() if hdrs else {}
+    hdrs.setdefault("User-Agent", random.choice(_DEFAULT_UA))
+    hdrs.setdefault("Accept", "application/json, text/html;q=0.9,*/*;q=0.8")
+    hdrs.setdefault("Accept-Language", "en-US,en;q=0.9")
+    return hdrs
+
+
+def related_words_sync(term: str, headers: dict | None = None, timeout: float = 20.0) -> List[str]:
+    """Return related words using JSON API; fallback to HTML title parse."""
+    headers = _ensure_headers(headers)
+
+    # 1. Try JSON endpoint --------------------------------------------------
+    api_url = API_URL.format(requests.utils.quote(term))
+    if os.getenv("DEBUG_SCRAPERS") in {"1","true","True"}:
+        print(f"[RelatedWords-JSON] GET {api_url}")
+
+    try:
+        r = requests.get(api_url, headers=headers, timeout=timeout)
+        if r.status_code == 200:
+            body = r.text.lstrip(")]}',\n")  # strip JSONP prefix if present
+            data = json.loads(body)
+            words = [item["word"] for item in data if "word" in item]
+            if words:
+                return words
+    except Exception:
+        pass
+
+    # 2. Fallback: parse <title> from HTML page -----------------------------
+    html_url = HTML_URL.format(term.replace(" ", "%20"))
+    if os.getenv("DEBUG_SCRAPERS") in {"1","true","True"}:
+        print(f"[RelatedWords-HTML] GET {html_url}")
+
+    resp = requests.get(html_url, headers=headers, timeout=timeout)
+    resp.raise_for_status()
+    match = re.search(r"related words:\s*(.+?)</title>", resp.text, re.I)
+    if match:
+        part = match.group(1)
+        # remove bracket note like [405 more]
+        part = re.sub(r"\s*\[.*?more\]", "", part)
+        return [w.strip() for w in part.split() if w.strip()]
+
+    # Ultimate fallback: JS-less page; return empty list
+    return [] 
