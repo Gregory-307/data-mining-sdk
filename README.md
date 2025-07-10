@@ -1,21 +1,23 @@
 # Data-Mining SDK
 
-**Async-friendly scraper & keyword-analysis toolkit** distilled from the original *Stock-Algorithm* monorepo.
+This repository houses an **async Python toolkit** for collecting and preprocessing publicly available web data that can later feed into downstream analytics or trading pipelines.
 
----
+The helpers here grew out of our internal *Stock-Algorithm* work-bench; they have been extracted and cleaned up so that they can operate **stand-alone** and slot easily into other code-bases.
 
-### Why use this SDK?
-*   **Unified API** – every scraper exposes a single `async def` with the same signature and shares a common `ScraperContext`.
-*   **Resilient by design** – automatic retries, UA rotation, proxy support and multiple fall-back strategies (legacy HTML, Selenium, etc.).
-*   **Zero boilerplate** – functional helpers, no heavyweight classes to subclass.
-*   **Batteries included** – built-in stop-word list, token utilities, Google Trends, stock data via *yfinance*, structured logging with *structlog*.
-*   **100 % self-contained** – no imports from the legacy repo, ready to drop into any codebase.
+Primary objective
+-----------------
+Provide an automated way to pull *related terms*, *recent news snippets*, *Wikipedia context*, *search-engine SERP keywords*, *Google Trends curves* and *basic price history* for any set of seed terms we are researching. The data will later be correlated with additional signals (Twitter sentiment, on-chain metrics, etc.) to decide hedge ratios and spot inflection points.
 
-> *The SDK is ideal for quick prototyping, keyword expansion, due-diligence research, and market-sentiment experiments.*
+Design principles
+-----------------
+• **Uniform API** – every scraper is an async function that accepts `(term, ctx)` and returns structured data.  
+• **Fail-safe** – built-in retries, multiple fall-backs (legacy HTML, headless browser) and optional proxy support.  
+• **Minimal ceremony** – functional helpers, no inheritance tree.  
+• **Self-contained** – no dependency on the old monorepo; can be vendor-dropped or installed from PyPI.  
 
----
+If you only need a quick data pull you can copy-paste one function; if you need an automated pipeline you can orchestrate everything with `asyncio.gather`.
 
-## Feature Matrix
+## Available pull-helpers
 
 | Source / Provider        | Public Helper                               | Typical Output                 | Notes                                           |
 |--------------------------|---------------------------------------------|--------------------------------|-------------------------------------------------|
@@ -26,11 +28,9 @@
 | Google Trends            | `scrapers.interest_over_time`               | `pandas.DataFrame`             | Async wrapper around *pytrends*                 |
 | Yahoo Finance            | `scrapers.fetch_stock_data`                 | OHLCV `pandas.DataFrame`       | Async wrapper around *yfinance*                 |
 
-For details see the [API Reference](#api-reference).
+For exact signatures see the [API reference](#api-reference).
 
----
-
-## Installation
+## Installation (5 min)
 
 ```bash
 # 1 – create an isolated environment (recommended)
@@ -49,33 +49,44 @@ Optional extras:
 
 The SDK requires **Python ≥ 3.10**.
 
----
-
-## Quick Example
+## Quick start
 
 ```python
-# examples/basic_usage.py
 import asyncio
-from Data_Mining.scrapers import google_web_top_words
+from Data_Mining.scrapers import wikipedia_top_words
 from Data_Mining.scrapers.base import ScraperContext
 
+
 async def main():
-    ctx = ScraperContext(use_browser=False, debug=True)
-    words = await google_web_top_words("openai", ctx=ctx, top_n=10)
-    print(words)
+    ctx = ScraperContext(debug=True)
+    tokens = await wikipedia_top_words("artificial intelligence", ctx=ctx, top_n=15)
+    print(tokens)
+
 
 asyncio.run(main())
 ```
 
-> Want an even quicker test?  Run the built-in **smoke-test** straight from the repo root:
->
-> ```bash
-> python smoke_test.py "openai"
-> ```
-> 
-> It works **before or after** installation thanks to a self-contained import shim.
+Expected console output (truncated):
 
----
+```text
+['intelligence', 'ai', 'artificial', 'machine', 'learning', 'computer', 'systems', 'data', 'human', 'algorithm']
+```
+
+The Wikipedia helper uses a public HTML endpoint (and a JSON fallback) and is therefore the most reliable first test.
+
+Need a one-liner?  A smoke-test script is provided:
+
+```bash
+python smoke_test.py "openai"
+```
+
+It runs without installation (the script injects the repo root into `sys.path`).
+
+> **Heads-up** The `google_web_top_words` helper can be throttled or CAPTCHA-blocked by Google. The module has legacy and Selenium fallbacks, but reliability is currently lower than the other helpers; use it with that expectation or route it through proxies.
+
+Parameter note
+--------------
+Most helpers accept `top_n` (default varies by source).  Setting `top_n=10` returns the ten most frequent tokens after stop-word removal.  For helpers that do not support ranking (e.g. `related_words`) the parameter is ignored.
 
 ## API Reference (cheat-sheet)
 
@@ -119,9 +130,7 @@ words_per_term = await gather_scrapers(
 )
 ```
 
----
-
-## Architecture Diagram
+## High-level architecture
 
 ```mermaid
 graph TD
@@ -148,7 +157,7 @@ graph TD
   ST -->|"yfinance"| ExternalYF[("yfinance")]
 ```
 
-> The diagram shows how each high-level scraper communicates with shared utilities and, where necessary, optional third-party libraries. The dashed edge marks the Selenium fallback path that only engages when `use_browser=True`.
+Dashed edge = optional Selenium path activated when `ScraperContext(use_browser=True)`.
 
 ---
 

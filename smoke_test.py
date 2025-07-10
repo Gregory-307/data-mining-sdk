@@ -21,7 +21,12 @@ import asyncio, sys, pprint, os, pathlib
 
 try:
     # Standard path when the package is installed (editable or wheel)
-    from Data_Mining.scrapers import google_web_top_words  # type: ignore
+    from Data_Mining.scrapers import (
+        google_web_top_words,
+        wikipedia_top_words,
+        related_words,
+        google_news_top_words,
+    )  # type: ignore
     from Data_Mining.scrapers.base import ScraperContext  # type: ignore
 except ModuleNotFoundError:
     # Fallback: assume we are being run from the repository root where the
@@ -45,13 +50,33 @@ except ModuleNotFoundError:
         sys.modules[full] = mod
         setattr(pkg, _sub, mod)  # type: ignore[arg-type]
 
-    from Data_Mining.scrapers import google_web_top_words  # type: ignore
+    from Data_Mining.scrapers import (
+        google_web_top_words,
+        wikipedia_top_words,
+        related_words,
+        google_news_top_words,
+    )  # type: ignore
     from Data_Mining.scrapers.base import ScraperContext  # type: ignore
 
 async def main(term: str):
-    ctx = ScraperContext(use_browser=True, debug=False)
-    words = await google_web_top_words(term, ctx=ctx, top_n=10)
-    pprint.pp(words)
+    ctx = ScraperContext(use_browser=False, debug=False)
+
+    tasks = [
+        google_web_top_words(term, ctx=ctx, top_n=10),
+        wikipedia_top_words(term, ctx=ctx, top_n=10),
+        related_words(term, ctx=ctx),
+        google_news_top_words(term, ctx=ctx, top_n=10),
+    ]
+
+    gw, wp, rw, gn = await asyncio.gather(*tasks, return_exceptions=True)
+
+    print("\n=== Smoke-test results ===")
+    pprint.pp({
+        "google_web_top_words": gw,
+        "wikipedia_top_words": wp,
+        "related_words": rw,
+        "google_news_top_words": gn,
+    })
 
 if __name__ == "__main__":
     asyncio.run(main(sys.argv[1] if len(sys.argv) > 1 else "openai")) 
