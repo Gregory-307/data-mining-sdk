@@ -10,7 +10,7 @@ from web_search_sdk.scrapers import google_web as gw
 from web_search_sdk.scrapers import google_web_top_words
 from web_search_sdk import browser as br
 from web_search_sdk.scrapers.base import ScraperContext
-from web_search_sdk.tests.conftest import show
+from .conftest import show
 
 HTML_SNIPPET = """
 <html><body>

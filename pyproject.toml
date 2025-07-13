@@ -3,8 +3,8 @@ requires = ["setuptools>=67", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "data-mining-sdk"
-version = "0.1.0"
+name = "web-search-sdk"
+version = "0.2.0"
 description = "Standalone async scraper & keyword toolkit distilled from legacy Stock-Algorithm project"
 license = "MIT"
 readme = "README.md"
@@ -20,6 +20,9 @@ dependencies = [
     "PyYAML>=6.0",
     "python-dotenv>=1.0",
     "structlog>=23.2",
+    "playwright>=1.45.0",
+    "pydantic>=2.8.0",
+    "tenacity>=8.5.0",
 ]
 
 [project.optional-dependencies]
@@ -28,7 +31,8 @@ docs = ["pdoc3>=0.10"]
 browser = ["selenium>=4.21", "webdriver-manager>=4.0"]
 
 [tool.setuptools.packages.find]
-include = ["Data_Mining", "Data_Mining.*"]
+where = ["."]
+include = ["web_search_sdk.*"]
 
 [tool.setuptools.package-data]
-"Data_Mining.resources" = ["*.txt"] 
+"web_search_sdk.resources" = ["*.txt"] 

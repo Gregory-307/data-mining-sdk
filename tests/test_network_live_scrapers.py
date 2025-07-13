@@ -13,7 +13,7 @@ from web_search_sdk.scrapers import (
 )
 from web_search_sdk.utils.http import _DEFAULT_UA
 from web_search_sdk.scrapers.base import ScraperContext
-from web_search_sdk.tests.conftest import show
+from .conftest import show
 
 pytestmark = pytest.mark.asyncio
 

@@ -50,6 +50,9 @@ class ScraperContext:
     # When True (or env DEBUG_SCRAPERS=1) all HTTP traffic is logged verbosely.
     debug: bool = False
 
+    # Max depth for crawling (e.g., link following)
+    max_depth: int = 1
+
     def choose_ua(self) -> str | None:
         if not self.user_agents:
             return None

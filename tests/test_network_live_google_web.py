@@ -7,7 +7,7 @@ import pytest
 from web_search_sdk.scrapers import google_web_top_words
 from web_search_sdk.scrapers.base import ScraperContext
 from web_search_sdk.utils.http import _DEFAULT_UA
-from web_search_sdk.tests.conftest import show
+from .conftest import show
 from web_search_sdk.browser import _SEL_AVAILABLE
 
 pytestmark = pytest.mark.asyncio
