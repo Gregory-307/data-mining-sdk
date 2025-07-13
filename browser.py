@@ -1,7 +1,7 @@
-"""Shared headless-browser helper for Data_Mining scrapers.
+"""Shared headless-browser helper for web_search_sdk scrapers.
 
 This module intentionally duplicates (rather than imports) the logic from
-`migration_package.browser` so that **Data_Mining remains self-contained**.
+`migration_package.browser` so that **web_search_sdk remains self-contained**.
 
 Public API:
     * _SEL_AVAILABLE – bool flag indicating whether Selenium stack is importable
@@ -13,7 +13,7 @@ import asyncio
 import random
 from typing import Callable
 
-from Data_Mining.scrapers.base import ScraperContext, run_in_thread
+from web_search_sdk.scrapers.base import ScraperContext, run_in_thread
 
 # ---------------------------------------------------------------------------
 # Lazy Selenium import guard (keeps dependency optional)

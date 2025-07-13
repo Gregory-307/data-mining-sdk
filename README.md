@@ -1,4 +1,4 @@
-# Data-Mining SDK
+# Web-Search SDK
 
 This repository houses an **async Python toolkit** for collecting and preprocessing publicly available web data that can later feed into downstream analytics or trading pipelines.
 
@@ -53,8 +53,8 @@ The SDK requires **Python ≥ 3.10**.
 
 ```python
 import asyncio
-from Data_Mining.scrapers import wikipedia_top_words
-from Data_Mining.scrapers.base import ScraperContext
+from web_search_sdk.scrapers import wikipedia_top_words
+from web_search_sdk.scrapers.base import ScraperContext
 
 
 async def main():
@@ -91,17 +91,17 @@ Most helpers accept `top_n` (default varies by source).  Setting `top_n=10` retu
 ## API Reference (cheat-sheet)
 
 ```python
-from Data_Mining.scrapers import (
+from web_search_sdk.scrapers import (
     related_words,
     wikipedia_top_words,
     google_news_top_words,
     google_web_top_words,
 )
-from Data_Mining.scrapers.trends import interest_over_time
-from Data_Mining.scrapers.stock import fetch_stock_data
+from web_search_sdk.scrapers.trends import interest_over_time
+from web_search_sdk.scrapers.stock import fetch_stock_data
 
 # Shared runtime configuration object
-from Data_Mining.scrapers.base import ScraperContext, gather_scrapers
+from web_search_sdk.scrapers.base import ScraperContext, gather_scrapers
 ```
 
 ### ScraperContext
