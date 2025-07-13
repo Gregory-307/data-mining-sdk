@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""Google Web Search scraper (async) – Data_Mining copy."""
+"""Google Web Search scraper (async) – web_search_sdk copy."""
 
 import asyncio
 from collections import Counter
@@ -104,7 +104,7 @@ def _looks_like_captcha(html: str) -> bool:
 # Slow browser fallback (synchronous)
 # ---------------------------------------------------------------------------
 
-# local Selenium fallback now delegated to Data_Mining.browser.fetch_html
+# local Selenium fallback now delegated to web_search_sdk.browser.fetch_html
 
 
 async def google_web_top_words(term: str, ctx: ScraperContext | None = None, top_n: int = DEFAULT_TOP_N) -> List[str]:

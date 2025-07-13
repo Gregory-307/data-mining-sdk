@@ -1,4 +1,4 @@
-"""Unit test: browser fallback path in Data_Mining.google_web_top_words.
+"""Unit test: browser fallback path in web_search_sdk.google_web_top_words.
 
 The HTTP fetch is monkey-patched to return an empty string so the scraper
 must call the browser helper.  We monkey-patch that helper to return a
@@ -6,11 +6,11 @@ static HTML snippet, ensuring no actual browser session is launched.
 """
 import pytest
 
-from Data_Mining.scrapers import google_web as gw
-from Data_Mining.scrapers import google_web_top_words
-from Data_Mining import browser as br
-from Data_Mining.scrapers.base import ScraperContext
-from Data_Mining.tests.conftest import show
+from web_search_sdk.scrapers import google_web as gw
+from web_search_sdk.scrapers import google_web_top_words
+from web_search_sdk import browser as br
+from web_search_sdk.scrapers.base import ScraperContext
+from web_search_sdk.tests.conftest import show
 
 HTML_SNIPPET = """
 <html><body>

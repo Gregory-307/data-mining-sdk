@@ -1,4 +1,4 @@
-"""Live smoke test hitting the real internet once (Data_Mining subset).
+"""Live smoke test hitting the real internet once (web_search_sdk subset).
 
 Checks RelatedWords, Wikipedia and Google News scrapers only.
 """
@@ -6,14 +6,14 @@ import socket
 import pytest
 import asyncio
 
-from Data_Mining.scrapers import (
+from web_search_sdk.scrapers import (
     related_words as related_scraper,
     wikipedia_top_words as wiki_scraper,
     google_news_top_words as news_scraper,
 )
-from Data_Mining.utils.http import _DEFAULT_UA
-from Data_Mining.scrapers.base import ScraperContext
-from Data_Mining.tests.conftest import show
+from web_search_sdk.utils.http import _DEFAULT_UA
+from web_search_sdk.scrapers.base import ScraperContext
+from web_search_sdk.tests.conftest import show
 
 pytestmark = pytest.mark.asyncio
 

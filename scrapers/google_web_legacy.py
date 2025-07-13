@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 """Legacy Google Web-Search scraper (synchronous).
-(Copied from migration_package for Data_Mining subset.)
+(Copied from migration_package for web_search_sdk subset.)
 """
 
 from typing import List

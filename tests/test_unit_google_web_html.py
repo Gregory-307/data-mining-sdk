@@ -6,10 +6,10 @@ it verifies token extraction and stop-word removal.  No live network calls.
 
 import pytest
 
-from Data_Mining.scrapers import google_web_top_words
-from Data_Mining.scrapers import google_web as gw
-from Data_Mining.scrapers.base import ScraperContext
-from Data_Mining.tests.conftest import show
+from web_search_sdk.scrapers import google_web_top_words
+from web_search_sdk.scrapers import google_web as gw
+from web_search_sdk.scrapers.base import ScraperContext
+from web_search_sdk.tests.conftest import show
 
 HTML_SNIPPET = """
 <html><body>

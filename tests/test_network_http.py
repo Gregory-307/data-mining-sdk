@@ -1,14 +1,14 @@
 """
 This test fakes an HTTP GET and expects 'ok'.
-It is identical to the version in migration_package but imports from Data_Mining.
+It is identical to the version in migration_package but imports from web_search_sdk.
 """
 
 import httpx
 import pytest
 from contextlib import asynccontextmanager
 
-from Data_Mining.utils.http import fetch_text, _DEFAULT_UA
-from Data_Mining.tests.conftest import show
+from web_search_sdk.utils.http import fetch_text, _DEFAULT_UA
+from web_search_sdk.tests.conftest import show
 
 # -------------------------- flaky transport helper -------------------------
 
@@ -41,7 +41,7 @@ async def dummy_ctx(**kwargs):
 @pytest.mark.asyncio
 async def test_fetch_text_retry_and_headers(monkeypatch):
     # Patch the internal factory so we inject our dummy client
-    from Data_Mining.utils import http as http_mod
+    from web_search_sdk.utils import http as http_mod
     monkeypatch.setattr(http_mod, "get_async_client", dummy_ctx)
 
     text = await fetch_text("http://example.com", retries=1)
