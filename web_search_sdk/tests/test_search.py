@@ -13,11 +13,12 @@ HTML_SNIPPET = """
 
 @pytest.mark.asyncio
 async def test_search_and_parse(monkeypatch):
-    async def _dummy_fetch_html(term, ctx):
+
+    async def _dummy_serp(term, ctx):
         return HTML_SNIPPET
 
     from web_search_sdk.scrapers import google_web as gw
-    monkeypatch.setattr(gw, "_fetch_html", _dummy_fetch_html)
+    monkeypatch.setattr(gw, "fetch_serp_html", _dummy_serp)
 
     ctx = ScraperContext()
     result = await search_and_parse("bitcoin", ctx, top_n=5)

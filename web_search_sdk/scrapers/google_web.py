@@ -18,7 +18,7 @@ import random
 from ..utils.http import _DEFAULT_UA
 from ..browser import fetch_html as _browser_fetch_html, _SEL_AVAILABLE
 
-__all__ = ["google_web_top_words"]
+__all__ = ["google_web_top_words", "fetch_serp_html"]
 
 SEARCH_URL = "https://www.google.com/search?q={}&hl=en&gl=us&gbv=1&num=100&safe=off&start=0"
 DEFAULT_TOP_N = 20
@@ -62,7 +62,7 @@ async def _fetch_html(term: str, ctx: ScraperContext) -> str:
         print(f"[GoogleWeb-HTTP] GET {url}")
     for attempt in range(ctx.retries + 1):
         try:
-            async with httpx.AsyncClient(timeout=ctx.timeout, proxies=ctx.proxy) as client:
+            async with httpx.AsyncClient(timeout=ctx.timeout, proxy=ctx.proxy) as client:
                 resp = await client.get(url, headers=headers, follow_redirects=True)
                 resp.raise_for_status()
                 return resp.text
@@ -101,6 +101,39 @@ def _looks_like_captcha(html: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Public fetch helper (robust HTML retrieval)
+# ---------------------------------------------------------------------------
+
+
+async def fetch_serp_html(term: str, ctx: ScraperContext | None = None) -> str:
+    """Return raw Google SERP HTML with automatic fallbacks.
+
+    Order: plain HTTP → legacy thread (tokens only, so skipped) → browser fallback.
+    Returns empty string if every attempt fails.
+    """
+
+    ctx = ctx or ScraperContext()
+
+    # Fast path – pure HTTP
+    try:
+        html = await _fetch_html(term, ctx)
+        if html and not _looks_like_captcha(html):
+            return html
+    except Exception:
+        html = ""
+
+    # Browser fallback
+    if ctx.use_browser:
+        if ctx.debug:
+            print(f"[GoogleWeb] Browser fallback for '{term}'…")
+        html = await _browser_fetch_html(term, lambda t: SEARCH_URL.format(_uparse.quote(t)), ctx)
+        if html:
+            return html
+
+    return ""
+
+
+# ---------------------------------------------------------------------------
 # Slow browser fallback (synchronous)
 # ---------------------------------------------------------------------------
 
@@ -111,45 +144,13 @@ async def google_web_top_words(
     term: str,
     ctx: ScraperContext | None = None,
     top_n: int = DEFAULT_TOP_N,
-    *,
-    parse_full: bool = False,
 ) -> List[str]:
-    ctx = ctx or ScraperContext()
-    def _parse_wrapper(html: str, t: str, c: ScraperContext):
-        return _parse_html(html, top_n)
-    try:
-        words = await run_scraper(term, _fetch_html, _parse_wrapper, ctx)
-        if words and not parse_full:
-            return words
-    except Exception:
-        pass
-    # Fallback 2: legacy blocking implementation in a thread
-    try:
-        words = await run_in_thread(legacy_sync, term, top_n=top_n, headers=ctx.headers, timeout=ctx.timeout)
-        if ctx.debug:
-            print(f"[GoogleWeb-Legacy] {term} -> {len(words)} words")
-        if words and not parse_full:
-            return words
-    except Exception:
-        pass
+    """Return the most frequent words/bigrams on a Google SERP.
 
-    # Fallback 3: Selenium browser (optional)
-    if ctx.use_browser:
-        if ctx.debug:
-            print(f"[GoogleWeb] Trying Selenium fallback for '{term}'…")
-        html = await _browser_fetch_html(term, lambda t: SEARCH_URL.format(_uparse.quote(t)), ctx)
-        if html:
-            words = _parse_html(html, top_n)
-            if ctx.debug:
-                print(f"[GoogleWeb-Selenium] {term} -> {len(words)} words")
-            if words and not parse_full:
-                return words
-
-    # If parse_full is requested but we did not early-return above, simply
-    # fall back to a lightweight tokenisation of the raw SERP body.  A more
-    # sophisticated crawler (following each link) can be plugged in later to
-    # respect YAGNI/KISS for now.
-    if parse_full and words:
-        return words  # Already have tokens – return them.
-
-    return [] 
+    Uses `fetch_serp_html` under the hood so it benefits from the same
+    HTTP → browser fallback cascade.
+    """
+    html = await fetch_serp_html(term, ctx)
+    if not html:
+        return []
+    return _parse_html(html, top_n) 

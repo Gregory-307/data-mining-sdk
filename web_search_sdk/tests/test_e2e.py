@@ -21,7 +21,7 @@ async def test_e2e_search_and_paywall(monkeypatch):
     # Patch Google SERP fetch
     async def _dummy_serp(term, ctx):
         return HTML_SERP
-    monkeypatch.setattr(sc.google_web, "_fetch_html", _dummy_serp)
+    monkeypatch.setattr(sc.google_web, "fetch_serp_html", _dummy_serp)
     # Patch paywall quick fetch
     async def _dummy_article(url, ctx):
         return HTML_ARTICLE

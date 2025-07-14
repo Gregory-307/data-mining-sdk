@@ -6,7 +6,7 @@ from . import google_web as gw  # Reuse existing helper functions
 
 async def search_and_parse(term: str, ctx: ScraperContext, top_n: int = 10, return_links: bool = True) -> Dict[str, List[str]]:
     """Async search and parse: Fetch from Google, extract links/text."""
-    raw_html = await gw._fetch_html(term, ctx)  # Reuse internal fetch
+    raw_html = await gw.fetch_serp_html(term, ctx)
     soup = BeautifulSoup(raw_html, 'html.parser')
     
     links = []
