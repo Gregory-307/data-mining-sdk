@@ -6,13 +6,23 @@ single term. Because pytrends is synchronous, we wrap calls in
 """
 from __future__ import annotations
 
-import asyncio
+import warnings
 from typing import List, Dict, Any, Callable
 
 import pandas as pd
 from pytrends.request import TrendReq
 
 __all__ = ["interest_over_time", "batch_interest_over_time"]
+
+# Deprecation notice – migrate to trends-sdk repo
+warnings.warn(
+    "scrapers.trends is deprecated; migrate to trends-sdk repo",
+    DeprecationWarning,
+    stacklevel=2,
+)
+print("[DEPRECATED] scrapers.trends – migrate to trends-sdk repo", flush=True)
+
+import asyncio
 
 
 def _interest_over_time_sync(term: str, timeframe: str, geo: str) -> pd.DataFrame:
