@@ -123,19 +123,34 @@ async def fetch_serp_html(term: str, ctx: ScraperContext | None = None) -> str:
     ctx = ctx or ScraperContext()
 
     # ------------------------------------------------------------------
-    # Selenium-first branch – skip HTTP entirely when explicitly requested
+    # When *any* browser backend is requested we skip the plain-HTTP path
+    # altogether.  This avoids the noisy 302/429 loops and "enable javascript"
+    # placeholder pages Google serves.  It also aligns with the user's
+    # requirement for zero initial HTTP requests.
     # ------------------------------------------------------------------
 
-    if ctx.use_browser and ctx.browser_type == "selenium":
+    if ctx.use_browser:
         if ctx.debug:
-            print(f"[GoogleWeb] Selenium fast-path for '{term}'…")
+            engine = ctx.browser_type
+            print(f"[GoogleWeb] Browser fast-path ({engine}) for '{term}'…")
 
-        html = await _browser_fetch_html(term, lambda t: SEARCH_URL.format(_uparse.quote(t)), ctx)
+        # Choose SERP URL – rich markup for Playwright variants
+        url_builder = lambda t: (
+            SEARCH_URL_BROWSER.format(_uparse.quote(t))
+            if ctx.browser_type.startswith("playwright") else SEARCH_URL.format(_uparse.quote(t))
+        )
+
+        html = await _browser_fetch_html(term, url_builder, ctx)
         if html:
             return html
 
+        # If browser fetch fails we just return empty string; callers can
+        # decide what to do rather than falling back to HTTP.
+        return ""
+
     # ------------------------------------------------------------------
-    # Default order: HTTP → browser fallback (Playwright or Selenium)
+    # Legacy path: pure HTTP first → browser fallback (never reached when
+    # ctx.use_browser=True due to early return above).
     # ------------------------------------------------------------------
 
     try:
