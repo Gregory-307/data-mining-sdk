@@ -153,7 +153,7 @@ async def fetch_serp_html(term: str, ctx: ScraperContext | None = None) -> str:
         # Use the richer SERP layout when we have JS rendering
         url_builder = lambda t: (
             SEARCH_URL_BROWSER.format(_uparse.quote(t))
-            if ctx.browser_type == "playwright" else SEARCH_URL.format(_uparse.quote(t))
+            if ctx.browser_type.startswith("playwright") else SEARCH_URL.format(_uparse.quote(t))
         )
 
         html = await _browser_fetch_html(term, url_builder, ctx)

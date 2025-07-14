@@ -26,6 +26,18 @@ except Exception:  # pragma: no cover – playwright not installed or unavailabl
     _PW_AVAILABLE = False
 
 # ---------------------------------------------------------------------------
+# Stealth helper JS (shared constant)
+# ---------------------------------------------------------------------------
+
+_STEALTH_JS = """
+// Remove webdriver flag
+Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+// Fake plugins & languages
+Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
+"""
+
+# ---------------------------------------------------------------------------
 # Lazy Selenium import guard (keeps dependency optional)
 # ---------------------------------------------------------------------------
 try:
@@ -104,7 +116,7 @@ async def fetch_html(term: str, url_fn: Callable[[str], str], ctx: ScraperContex
     fallbacks without exceptions.
     """
 
-    if ctx.browser_type == "playwright":
+    if ctx.browser_type in {"playwright", "playwright_stealth"}:
         if not _PW_AVAILABLE:
             if ctx.debug:
                 print("[browser:PW] Playwright not available – skipping")
@@ -115,8 +127,16 @@ async def fetch_html(term: str, url_fn: Callable[[str], str], ctx: ScraperContex
 
         try:
             async with async_playwright() as p:
-                browser = await p.firefox.launch(headless=True)
+                if ctx.browser_type == "playwright_stealth":
+                    browser = await p.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
+                else:
+                    browser = await p.firefox.launch(headless=True)
                 page = await browser.new_page()
+
+                # Apply stealth patches early
+                if ctx.browser_type == "playwright_stealth":
+                    await page.add_init_script(_STEALTH_JS)
+
                 url = url_fn(term)
                 if ctx.debug:
                     print(f"[browser:PW] GET {url}")
