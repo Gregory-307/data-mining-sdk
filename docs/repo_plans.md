@@ -26,6 +26,7 @@ _Backlog & Questions_: TBD
 | Stream ingest | Sample stream in dev env | Switch to filtered stream (crypto keywords) |
 | Bot filtering | Not implemented | Integrate `BotFilter` from sentiment-pipeline |
 | Export CLI (`export`) | Missing | Write exporter to gzip NDJSON in S3 layout |
+| **LLM pre-clean** | Missing | Tokenise & drop non-English/emoji-only tweets using Llama tokenizer |
 
 _Backlog & Questions_: TBD
 
@@ -39,6 +40,8 @@ _Backlog & Questions_: TBD
 | Repo skeleton | Not created | Init repo with pyproject, logs/ |
 | Data schema | Draft in MasterPlan | Implement `schema.py` with liquidity & whale fields |
 | BotFilter | Not started | Design interface + Botometer integration |
+| **Model Zoo** | Not started | Add `llama_local.py`, `gpt4_gateway.py`, `models/router.py` for tiered LLM sentiment |
+| **Cost control** | Not started | Implement token quota & Redis cache for Tier-2 LLM calls |
 
 _Backlog & Questions_: TBD
 
