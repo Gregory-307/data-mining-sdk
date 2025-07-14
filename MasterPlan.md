@@ -1,52 +1,95 @@
 # MasterPlan — Crypto Swing Analysis Suite
 
-## 1. Executive Summary
-Goal: Decide if BTC/ETH swings are *sustained* (fundamental) or *transient* (noise) and size hedges automatically.
-Core output: Swing Sustainability Score ∈ [0, 1] (≥ 0.7 heavy hedge, ≤ 0.3 light hedge).
-Edge: Fuse sentiment + order-book liquidity + on-chain flows; loop budget ≤ 5 s.
-
-## 2. Evidence Snapshot (peer-reviewed, verified)
-| Finding | Source (year) | Why it matters |
-|---------|---------------|----------------|
-| Neutral & negative Twitter sentiment moves intraday liquidity and volatility in BTC/ETH/LTC/XRP | [MDPI Data **10(4):50** (2025)](https://www.mdpi.com/2306-5729/10/4/50) | Confirms sentiment is tied to micro-moves our desk cares about |
-| Sentiment-enriched LSTM beats price-only models (MAE ↓18%) | [BDCC **7(3):137** (2023)](https://www.mdpi.com/2504-2289/7/3/137) | Shows adding NLP signal can improve short-horizon prediction |
-| Large-language-model ensembles (FinBERT + GPT-4) hit 86% directional accuracy but require careful fine-tuning | [BDCC **8(6):63** (2024)](https://www.mdpi.com/2504-2289/8/6/63) | Practical ceiling on model edge, highlights tuning cost |
-| Twitter bot manipulation inflates positive sentiment & volume | [Finance Research Letters **61** (2022)](https://www.sciencedirect.com/science/article/pii/S1544612322001234) | Underscores need for bot filtering before scoring |
-| Bibliometric review finds sentiment often lags price in crypto hype cycles | [IJFS **13(2):87** (2025)](https://www.mdpi.com/2227-7072/13/2/87) | Momentum trades on raw sentiment can whipsaw – need lag/reversal features |
-| Influencer tweets (e.g., Musk) cause short-lived spikes, reversion within 60 m | [Technol. Forecasting & Soc. Change **186** (2023)](https://doi.org/10.1016/j.techfore.2022.122164) | Supports down-weighting celebrity bursts |
+> *A minimal, actionable brief for engineers & downstream AIs. Keep this file up to date; delete anything that drifts into fluff.*
 
 ---
 
-## 3. Key Insights at-a-Glance
-1. **Sentiment is tradable but weak** – peer studies peg standalone accuracy ~55-60%. Edge comes when fused with order-book + on-chain flow (Insight #1).
-2. **Noise is structural** – bots, shill threads, and influencer pumps distort raw feeds (Insight #2). Any production system must score *clean* tweets only.
-3. **Lag cuts both ways** – positive sentiment typically *lags* major up-moves (risk of buying tops) while neutral/negative moves liquidity contemporaneously (Insight #3).
-4. **Model complexity tops out fast** – ensembles of FinBERT/GPT-4 reach ~86% hit-rate; beyond that, diminishing returns vs compute (Insight #4).
-5. **Liquidity is king** – the only sentiment feature that consistently correlates with PnL is its impact on depth/spread, not on direction (Insight #5).
-6. **Human override still needed** – research warns of manipulation risk on extreme scores; plan keeps manual sign-off for Score <0.1 or >0.9 (Insight #6).
+## 1. Executive Summary
+Goal: Detect whether BTC/ETH swings are **sustained** (fundamental) or **transient** (noise) and size hedges automatically.
+
+• **Core metric**: Swing Sustainability Score \(0‥1). ≥ 0.7 → heavy hedge. ≤ 0.3 → light hedge.  
+• **Edge**: Fuse sentiment, order-book liquidity, and on-chain flows under 5 s.
+
+---
+
+## 2. Evidence Snapshot (peer-reviewed, verified)
+| Finding | Source | Why it matters |
+|---------|--------|----------------|
+| Neutral & negative Twitter sentiment moves intraday liquidity and volatility in BTC/ETH/LTC/XRP | [MDPI Data **10(4):50** (2025)](https://www.mdpi.com/2306-5729/10/4/50) | Sentiment links directly to micro-moves our desk cares about |
+| Sentiment-enriched LSTM beats price-only models (MAE ↓18%) | [BDCC **7(3):137** (2023)](https://www.mdpi.com/2504-2289/7/3/137) | Adding NLP signal improves short-horizon prediction |
+| FinBERT + GPT-4 ensembles hit 86 % directional accuracy with careful tuning | [BDCC **8(6):63** (2024)](https://www.mdpi.com/2504-2289/8/6/63) | Sets realistic ceiling; tuning cost visible |
+| Twitter bot manipulation inflates positive sentiment & volume | [Finance Research Letters **61** (2022)](https://www.sciencedirect.com/science/article/pii/S1544612322001234) | Must de-bot feeds before scoring |
+| Sentiment often lags price in crypto hype cycles | [IJFS **13(2):87** (2025)](https://www.mdpi.com/2227-7072/13/2/87) | Need lag/reversal features |
+| Influencer tweets cause ~60 min spikes then mean-revert | [Technol. Forecast. Soc. Change **186** (2023)](https://doi.org/10.1016/j.techfore.2022.122164) | Down-weight celebrity bursts |
+
+---
+
+## 3. Key Insights (TL;DR)
+1. **Sentiment is tradable but weak** (~55-60 % accuracy standalone). Edge comes when fused with order-book + on-chain data.  
+2. **Noise is structural** — bots, shill threads, influencer pumps distort raw feeds → clean before use.  
+3. **Lag cuts both ways** — positive sentiment lags big up-moves; neutral/negative affects liquidity contemporaneously.  
+4. **Complexity tops out fast** — FinBERT/GPT-4 ≈ 86 % hit-rate ⇒ diminishing returns beyond ensembles.  
+5. **Liquidity is king** — sentiment’s PnL value comes via depth/spread, not direction.  
+6. **Human override still needed** — retain sign-off for Score <0.1 or >0.9 (manipulation risk).
 
 ---
 
 ## 4. Gap Analysis — Alignment vs Expert Wisdom
-| Plan Component | Expert Validation | Tuning required |
-|----------------|------------------|-----------------|
-| Sentiment scraper → ML classifier | Supported (Data 2025, BDCC 2023) | Add bot filter + influencer down-weight (Insights 2, 6) |
-| Score threshold 0.7 / 0.3 | No academic consensus | Walk-forward optimise on 2021-24 data |
-| Liquidity feature integration | Strong evidence (Insight 5) | Include depth/spread delta |
-| 5 s latency budget | Uncontested | Keep async I/O + cache |
-| Fully automated hedging | Experts flag manipulation (Insight 6) | Retain human check on extreme scores |
+| Component | Expert View | Action |
+|-----------|------------|--------|
+| Sentiment scraper → ML classifier | Supported (Data 2025, BDCC 2023) | Add bot filter & influencer down-weight |
+| Score thresholds 0.7 / 0.3 | No academic consensus | Walk-forward optimise on 2021-24 data |
+| Liquidity feature integration | Strong evidence | Include depth/spread delta |
+| 5 s latency budget | Uncontested | Async I/O + cache |
+| Fully automated hedging | Experts flag manipulation | Keep human check on extremes |
 
-## 5. Revised High-Level Approach (no timeline)
-1. **Data Ingestion** — Async pull: tweets (with Botometer), news headlines, on-chain, order-book snapshots.
-2. **Cleaning & Feature Layer** — Remove bots, detect sarcasm, compute lagged sentiment windows, liquidity deltas.
-3. **Model Ensemble** — XGBoost (tabular) + FinBERT (text) + rule-based lag trigger; majority vote.
-4. **Score & Hedge Engine** — Map score to hedge size; override if manipulation risk high.
-5. **Continuous Evaluation** — Walk-forward validation; Sharpe & drawdown monitor; alert on drift.
+---
 
-## 6. Open Questions for the Team
-• Acceptable false-hedge cost vs missed-hedge cost?  
+## 5. High-Level Approach (no timeline)
+1. **Data Ingestion** — Async pull: tweets (Botometer-flagged), news, on-chain, order-book snapshots.  
+2. **Feature Layer** — De-bot, detect sarcasm, compute lag windows & liquidity deltas.  
+3. **Model Ensemble** — XGBoost (tabular) + FinBERT (text) + rule-based lag trigger.  
+4. **Score → Hedge** — Map score to hedge size; manual override if manipulation risk.  
+5. **Continuous Eval** — Walk-forward validation, Sharpe/drawdown monitor, alert on drift.
+
+---
+
+## 6. Repo Map & Architecture
+### Repositories
+| Repo | Purpose | Key Tech |
+|------|---------|----------|
+| `web-search-sdk` | Async Google/news scraping, full-article parsing | httpx, BS4, Playwright |
+| `twitter-sdk` | High-throughput Twitter ingest & virality detection | Tweepy, proxy rotation |
+| `sentiment-pipeline` | NLP (FinBERT, GPT-4) + feature engineering | Transformers, LangChain |
+| `ml-backtester` | Model training & historical replay | XGBoost, PyTorch, Backtrader |
+| `trends-sdk` | Google Trends high-volume client | Custom async client |
+
+### System Diagram
+```mermaid
+graph TD
+  Seeds[Seed Terms] --> A(Web Search SDK) --> B(Sentiment Pipeline)
+  Seeds --> C(Twitter SDK) --> B
+  Seeds --> D(Trends SDK) --> E(ML Backtester)
+  B --> Score(Swing Score)
+  E --> Score
+  Score --> Hedge(Hedge Engine)
+```
+
+---
+
+## 7. Appendix — Backtesting & Validation (one-pager)
+• **Data**: 2017-24 tweets, order-books, on-chain.  
+• **Primary test**: Enter swing if ΔSentiment ≥ +10 % vs 24 h mean; exit when score <0.5.  
+• **Metrics**: Sharpe, max drawdown, hit-rate, liquidity impact.  
+• **Noise Stress**: Inject bot noise per FRL 2022; rerun 1k Monte Carlo paths.  
+• **Crisis Replay**: May-21 crash, Nov-22 FTX, 2024 ETF rally.
+
+---
+
+### Open Questions
+• False-hedge cost vs missed-hedge cost?  
 • Minimum liquidity threshold to act?  
 • Regulatory constraints on scraping volume?  
 • Integration point with existing risk dashboard?
 
-*Evidence drives design; expand scope only when new data raises edge.* 
+> **Evidence drives design; expand scope only if new data proves edge.** 
