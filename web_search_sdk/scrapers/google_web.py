@@ -21,6 +21,11 @@ from ..browser import fetch_html as _browser_fetch_html, _SEL_AVAILABLE
 __all__ = ["google_web_top_words", "fetch_serp_html"]
 
 SEARCH_URL = "https://www.google.com/search?q={}&hl=en&gl=us&gbv=1&num=100&safe=off&start=0"
+# When we spin up a real browser we can safely drop the `gbv=1` (basic HTML)
+# switch so that Google serves the standard JS-enabled page. This
+# significantly reduces the odds of getting the “enable javascript”
+# interstitial that currently breaks parsing in headless mode.
+SEARCH_URL_BROWSER = "https://www.google.com/search?q={}&hl=en&gl=us&num=100&safe=off&start=0"
 DEFAULT_TOP_N = 20
 TOKEN_RE = re.compile(r"[A-Za-z]{2,}")
 
@@ -108,13 +113,31 @@ def _looks_like_captcha(html: str) -> bool:
 async def fetch_serp_html(term: str, ctx: ScraperContext | None = None) -> str:
     """Return raw Google SERP HTML with automatic fallbacks.
 
-    Order: plain HTTP → legacy thread (tokens only, so skipped) → browser fallback.
-    Returns empty string if every attempt fails.
+    New logic (2025-07): when the caller explicitly asks for Selenium
+    (`ctx.use_browser` and `ctx.browser_type == "selenium"`) we bypass the
+    plain-HTTP attempt altogether because it is likely to hit 302/429 or a
+    CAPTCHA page.  Selenium rendering is slow but markedly more reliable in
+    low-volume scenarios.
     """
 
     ctx = ctx or ScraperContext()
 
-    # Fast path – pure HTTP
+    # ------------------------------------------------------------------
+    # Selenium-first branch – skip HTTP entirely when explicitly requested
+    # ------------------------------------------------------------------
+
+    if ctx.use_browser and ctx.browser_type == "selenium":
+        if ctx.debug:
+            print(f"[GoogleWeb] Selenium fast-path for '{term}'…")
+
+        html = await _browser_fetch_html(term, lambda t: SEARCH_URL.format(_uparse.quote(t)), ctx)
+        if html:
+            return html
+
+    # ------------------------------------------------------------------
+    # Default order: HTTP → browser fallback (Playwright or Selenium)
+    # ------------------------------------------------------------------
+
     try:
         html = await _fetch_html(term, ctx)
         if html and not _looks_like_captcha(html):
@@ -122,11 +145,18 @@ async def fetch_serp_html(term: str, ctx: ScraperContext | None = None) -> str:
     except Exception:
         html = ""
 
-    # Browser fallback
+    # Browser fallback – use the *standard* Google markup (no gbv=1)
     if ctx.use_browser:
         if ctx.debug:
             print(f"[GoogleWeb] Browser fallback for '{term}'…")
-        html = await _browser_fetch_html(term, lambda t: SEARCH_URL.format(_uparse.quote(t)), ctx)
+
+        # Use the richer SERP layout when we have JS rendering
+        url_builder = lambda t: (
+            SEARCH_URL_BROWSER.format(_uparse.quote(t))
+            if ctx.browser_type == "playwright" else SEARCH_URL.format(_uparse.quote(t))
+        )
+
+        html = await _browser_fetch_html(term, url_builder, ctx)
         if html:
             return html
 
