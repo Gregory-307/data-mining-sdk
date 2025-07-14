@@ -51,8 +51,8 @@ Goal: Detect whether BTC/ETH swings are **sustained** (fundamental) or **transie
 
 ## 5. High-Level Approach (no timeline)
 1. **Data Ingestion** — Async pull: tweets (Botometer-flagged), news, on-chain, order-book snapshots.  
-2. **Feature Layer** — De-bot, detect sarcasm, compute lag windows & liquidity deltas **with exponential time-decay weighting (λ≈0.7/24 h)**.  
-3. **Model Ensemble** — XGBoost (tabular) + FinBERT (text) + rule-based lag trigger.  
+2. **Feature Layer** — De-bot, detect sarcasm, compute **1-minute** lag windows & liquidity deltas with exponential time-decay weighting (λ≈0.7 per 24 h per research).  
+3. **Model Ensemble** — **Benchmark multiple models (LLM embeddings, NHITS, XGBoost)** + rule-based lag trigger; pick winner on live PnL vs latency.  
 4. **Score → Hedge** — Map score to hedge size; manual override if manipulation risk.  
 5. **Continuous Eval** — Walk-forward validation, Sharpe/drawdown monitor, **Δspread & slippage metrics**, alert on drift.
 
@@ -64,7 +64,7 @@ Goal: Detect whether BTC/ETH swings are **sustained** (fundamental) or **transie
 |------|---------|----------|
 | `web-search-sdk` | Async Google/news scraping, full-article parsing | httpx, BS4, Playwright |
 | `twitter-sdk` | High-throughput Twitter ingest & virality detection | Tweepy, proxy rotation |
-| `sentiment-pipeline` | NLP (FinBERT, GPT-4) + feature engineering | Transformers, LangChain |
+| `sentiment-pipeline` | NLP (**LLM embeddings – e.g., domain-tuned BERT, GPT-4, DistilBERT**)+ feature engineering | Transformers, LangChain |
 | `ml-backtester` | Model training & historical replay | XGBoost, PyTorch, Backtrader |
 | `trends-sdk` | Google Trends high-volume client | Custom async client |
 
@@ -97,3 +97,5 @@ graph TD
 • Integration point with existing risk dashboard?
 
 > **Evidence drives design; expand scope only if new data proves edge.** 
+• **Runtime simulator availability?** (needed for end-to-end hedge tests)
+• **Bubble/Explosivity Alert** — planned (BSCADF); fires risk flag, not hedge. 
