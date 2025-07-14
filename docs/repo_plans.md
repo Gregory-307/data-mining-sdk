@@ -66,6 +66,7 @@ _Backlog & Questions_: TBD
 |------|--------|-----------|
 | API stub | Not created | Flask/FastAPI endpoint returning placeholder JSON |
 | Dockerization | Not started | Write Dockerfile for local/CI spin-up |
+| **Detailed Plan** | Created | See `docs/hedge_engine_plan.md` |
 
 _Backlog & Questions_: TBD
 
