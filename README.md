@@ -24,9 +24,10 @@ If you only need a quick data pull you can copy-paste one function; if you need 
 | RelatedWords.org         | `scrapers.related_words`                    | `list[str]`                    | JSON API with HTML & Selenium fall-backs        |
 | Wikipedia                | `scrapers.wikipedia_top_words`              | top-N tokens                   | Legacy Newspaper3k → raw HTML → JSON API        |
 | Google News RSS          | `scrapers.google_news_top_words`            | top-N tokens                   | No CAPTCHA risk; RSS is lightweight             |
-| Google Web Search        | `scrapers.google_web_top_words`             | top-N tokens + bigrams         | Multi-step fall-back incl. headless Firefox     |
-| Google Trends            | `scrapers.interest_over_time`               | `pandas.DataFrame`             | Async wrapper around *pytrends*                 |
+| Google Web Search (links)| `scrapers.search.search_and_parse`          | `{links, tokens}`              | Returns outbound links **and** tokens in one call |
+| Google Trends            | ~~`scrapers.interest_over_time`~~ *(deprecated – see trends-sdk)* | `pandas.DataFrame` | Will be removed in v0.3 – migrate to **trends-sdk** |
 | Yahoo Finance            | `scrapers.fetch_stock_data`                 | OHLCV `pandas.DataFrame`       | Async wrapper around *yfinance*                 |
+| Bloomberg / CNBC         | `scrapers.paywall.fetch_*`                 | full article text              | Quick HTTP → Playwright fallback for paywalls   |
 
 For exact signatures see the [API reference](#api-reference).
 
@@ -42,10 +43,18 @@ source .venv/bin/activate        # Linux/macOS
 pip install -e .                 # or ".[test]", ".[browser]" (see below)
 ```
 
-Optional extras:
+Optional extras (quick): `browser` for headless Playwright, `test` for pytest.  Full matrix → see [Progress_Report_v0.2.0.md](Progress_Report_v0.2.0.md).
 
-* `pip install -e ".[test]"`     – pytest & pytest-asyncio for the test-suite.
-* `pip install -e ".[browser]"` – Selenium 4 + webdriver-manager for the headless-Firefox fall-back.
+Run (choose browser engine):
+    python demo.py --term "btc rally" --url "https://www.bloomberg.com/..." --engine selenium
+
+Available engines:
+
+| Engine flag | Description | Notes |
+|-------------|-------------|-------|
+| `selenium` *(default)* | Firefox via Geckodriver | No extra install on CI
+| `playwright` | Playwright-Firefox | Faster than Selenium
+| `stealth` | Playwright-Chromium with anti-bot patches | Best for heavy CAPTCHA sites |
 
 The SDK requires **Python ≥ 3.10**.
 
@@ -160,30 +169,22 @@ graph TD
 Dashed edge = optional Selenium path activated when `ScraperContext(use_browser=True)`.
 
 ---
+### Browser & Paywalls (one-liner)
+`ScraperContext(use_browser=True, browser_type="playwright")` enables JS rendering for Google CAPTCHAs & paywalls (Bloomberg/CNBC).  Selenium remains as a legacy option.
 
-## Browser fall-back (optional)
-Some Google SERP requests are served as JS-only shells and will defeat pure HTTP scraping.  Setting `use_browser=True` in `ScraperContext` activates a **headless-Firefox** fallback that:
-1. Downloads the latest compatible Geckodriver on first use (cached under `~/.wdm/`).
-2. Launches Firefox in headless mode, navigates to the target URL, waits for `<body>`.
-
-Make sure you have installed the *browser* extra or Selenium will stay disabled.
-
----
-
-## Testing & Coverage
+### Testing & Coverage
 
 ```bash
-# run fast offline & network tests
-python -m pytest tests -q
+# run tests
+python -m pytest -q
 
-# run with coverage (pytest-cov)
-python -m pytest tests --cov=. --cov-config=.coveragerc -q
+# run with coverage (threshold ≥80 %)
+python -m pytest --cov=. -q
 ```
 
-Coverage is expected to be **95 %+** for the core logic; Selenium & legacy code paths are excluded.
+CI enforces **≥80 %** coverage (legacy/network modules omitted).
 
 ---
-
 ## Contributing
 
 1. **Fork** → **create branch** → **PR**.  PRs must pass CI (tests + coverage).
@@ -192,17 +193,9 @@ Coverage is expected to be **95 %+** for the core logic; Selenium & legacy code 
 4. Document the new feature in this README.
 
 ---
-
-## Roadmap & Ideas
-* Playwright-stealth driver to bypass bot detection while staying headless.
-* Rotating residential proxy integration.
-* Incremental cache layer to re-use HTTP responses during local experiments.
-* Additional language support – stop-word list & tokeniser tweaks.
-
-Comments, issues and PRs are welcome!
+For roadmap & detailed progress see **Progress_Report_v0.2.0.md**.
 
 ---
-
 ## License
 
 MIT – see [LICENSE](LICENSE) for full text. 
