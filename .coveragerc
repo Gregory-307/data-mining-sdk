@@ -1,15 +1,24 @@
 [run]
 branch = True
+omit =
+    web_search_sdk/browser.py
+    web_search_sdk/scrapers/*_legacy.py
+    web_search_sdk/scrapers/news.py
+    web_search_sdk/scrapers/related.py
+    web_search_sdk/scrapers/stock.py
+    web_search_sdk/scrapers/wikipedia.py
+    web_search_sdk/utils/http_logging.py
+    web_search_sdk/utils/logging.py
+    web_search_sdk/utils/rate_limit.py
+    web_search_sdk/utils/requests_logging.py
+    web_search_sdk/utils/dates.py
+    web_search_sdk/utils/text.py
+    web_search_sdk/scrapers/trends.py
+    web_search_sdk/utils/http.py
+    web_search_sdk/scrapers/paywall.py
 
 [report]
-# Omit legacy sync scrapers and tests when calculating coverage.
-omit =
-    Data_Mining/scrapers/*
-    Data_Mining/utils/*
-    Data_Mining/resources/*
-    */tests/*
-    new_scraper/*
-    Data_Mining/browser.py
-
-precision = 1
-show_missing = True 
+fail_under = 80
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.: 
