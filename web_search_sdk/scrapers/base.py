@@ -53,6 +53,9 @@ class ScraperContext:
     # Max depth for crawling (e.g., link following)
     max_depth: int = 1
 
+    # Preferred browser backend when use_browser=True ("selenium" | "playwright")
+    browser_type: str = "selenium"
+
     def choose_ua(self) -> str | None:
         if not self.user_agents:
             return None

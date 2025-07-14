@@ -16,6 +16,16 @@ from typing import Callable
 from web_search_sdk.scrapers.base import ScraperContext, run_in_thread
 
 # ---------------------------------------------------------------------------
+# Lazy Playwright import guard (optional dependency)
+# ---------------------------------------------------------------------------
+try:
+    import importlib
+    _pl_mod = importlib.import_module("playwright.async_api")  # type: ignore
+    _PW_AVAILABLE = True
+except Exception:  # pragma: no cover – playwright not installed or unavailable
+    _PW_AVAILABLE = False
+
+# ---------------------------------------------------------------------------
 # Lazy Selenium import guard (keeps dependency optional)
 # ---------------------------------------------------------------------------
 try:
@@ -84,9 +94,40 @@ def _fetch_sync(term: str, url_fn: Callable[[str], str], ctx: ScraperContext) ->
 # ---------------------------------------------------------------------------
 
 async def fetch_html(term: str, url_fn: Callable[[str], str], ctx: ScraperContext) -> str:
-    """Return HTML for *url_fn(term)* rendered via headless Firefox.
+    """Return rendered HTML via the configured headless browser backend.
 
-    Returns an empty string if Selenium/driver is unavailable or any error
-    occurs.  Scrapers should treat an empty return as "try next fallback".
+    Backends:
+        - Selenium (default): Firefox via geckodriver.
+        - Playwright: ctx.browser_type == "playwright".
+
+    Returns an empty string on any failure so callers can try alternative
+    fallbacks without exceptions.
     """
+
+    if ctx.browser_type == "playwright":
+        if not _PW_AVAILABLE:
+            if ctx.debug:
+                print("[browser:PW] Playwright not available – skipping")
+            return ""
+
+        # Import locally to avoid import cost when not used
+        from playwright.async_api import async_playwright  # type: ignore
+
+        try:
+            async with async_playwright() as p:
+                browser = await p.firefox.launch(headless=True)
+                page = await browser.new_page()
+                url = url_fn(term)
+                if ctx.debug:
+                    print(f"[browser:PW] GET {url}")
+                await page.goto(url, timeout=int(ctx.timeout * 1000))
+                html = await page.content()
+                await browser.close()
+                return html or ""
+        except Exception as exc:  # pragma: no cover – runtime error
+            if ctx.debug:
+                print(f"[browser:PW] Error: {exc}")
+            return ""
+
+    # Fallback to Selenium (threaded) for all other cases
     return await run_in_thread(_fetch_sync, term, url_fn, ctx) 
