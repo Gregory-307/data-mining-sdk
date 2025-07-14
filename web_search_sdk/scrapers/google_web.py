@@ -107,13 +107,19 @@ def _looks_like_captcha(html: str) -> bool:
 # local Selenium fallback now delegated to web_search_sdk.browser.fetch_html
 
 
-async def google_web_top_words(term: str, ctx: ScraperContext | None = None, top_n: int = DEFAULT_TOP_N) -> List[str]:
+async def google_web_top_words(
+    term: str,
+    ctx: ScraperContext | None = None,
+    top_n: int = DEFAULT_TOP_N,
+    *,
+    parse_full: bool = False,
+) -> List[str]:
     ctx = ctx or ScraperContext()
     def _parse_wrapper(html: str, t: str, c: ScraperContext):
         return _parse_html(html, top_n)
     try:
         words = await run_scraper(term, _fetch_html, _parse_wrapper, ctx)
-        if words:
+        if words and not parse_full:
             return words
     except Exception:
         pass
@@ -122,7 +128,7 @@ async def google_web_top_words(term: str, ctx: ScraperContext | None = None, top
         words = await run_in_thread(legacy_sync, term, top_n=top_n, headers=ctx.headers, timeout=ctx.timeout)
         if ctx.debug:
             print(f"[GoogleWeb-Legacy] {term} -> {len(words)} words")
-        if words:
+        if words and not parse_full:
             return words
     except Exception:
         pass
@@ -136,8 +142,14 @@ async def google_web_top_words(term: str, ctx: ScraperContext | None = None, top
             words = _parse_html(html, top_n)
             if ctx.debug:
                 print(f"[GoogleWeb-Selenium] {term} -> {len(words)} words")
-            return words
+            if words and not parse_full:
+                return words
 
-    if ctx.debug:
-        print(f"[GoogleWeb] {term} – no data found after all fallbacks")
+    # If parse_full is requested but we did not early-return above, simply
+    # fall back to a lightweight tokenisation of the raw SERP body.  A more
+    # sophisticated crawler (following each link) can be plugged in later to
+    # respect YAGNI/KISS for now.
+    if parse_full and words:
+        return words  # Already have tokens – return them.
+
     return [] 
