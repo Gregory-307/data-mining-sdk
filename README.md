@@ -206,3 +206,56 @@ Comments, issues and PRs are welcome!
 ## License
 
 MIT – see [LICENSE](LICENSE) for full text. 
+
+---
+## Paywall Handling (Bloomberg & CNBC)
+
+Some premium outlets require full JS rendering to reveal the article body.  When you
+set `ScraperContext(use_browser=True, browser_type="playwright")` the helper
+`web_search_sdk.scrapers.paywall` will transparently spin up a headless
+Playwright-Firefox session, navigate, wait for `<article>` and return the cleaned
+text.  Example:
+
+```python
+from web_search_sdk.scrapers.paywall import fetch_bloomberg
+from web_search_sdk.scrapers.base import ScraperContext
+
+ctx = ScraperContext(use_browser=True, browser_type="playwright", debug=True)
+article = await fetch_bloomberg("https://www.bloomberg.com/news/articles/...", ctx)
+print(article[:400], "…")
+```
+
+If `use_browser=False` a quick HTTP fetch is attempted first—fast and cheap for
+pages without heavy paywall JS.
+
+---
+## Output Utilities
+Lightweight helpers live in `web_search_sdk.utils.output`.
+
+```python
+from web_search_sdk.utils.output import to_json, to_csv
+
+data = {"term": "btc rally", "score": 0.87}
+# overwrite
+to_json(data, "out/latest.json")
+# append (keeps a JSON list)
+to_json(data, "out/history.json", append=True)
+
+rows = [{"term": "btc", "hits": 120}, {"term": "eth", "hits": 95}]
+# create or overwrite CSV
+to_csv(rows, "out/stats.csv")
+# append more rows later
+to_csv(rows, "out/stats.csv", append=True)
+```
+
+The helpers are idempotent and create parent folders automatically.
+
+---
+## Deprecated Module – trends
+`web_search_sdk.scrapers.trends` is now **deprecated** in favour of the separate
+`trends-sdk` repo.  Importing it raises a `DeprecationWarning` and prints a
+reminder so you can migrate without surprises.
+```python
+import warnings, web_search_sdk.scrapers.trends  # warning printed once
+```
+--- 
