@@ -37,7 +37,7 @@ _Backlog & Questions_: TBD
 
 | Area | Status | Next Step |
 |------|--------|-----------|
-| Repo skeleton | Not created | Init repo with pyproject, logs/ |
+| Repo skeleton | Not created | Init repo with pyproject, logs/ *(see* `docs/sentiment_pipeline_plan.md` *)* |
 | Data schema | Draft in MasterPlan | Implement `schema.py` with liquidity & whale fields |
 | BotFilter | Not started | Design interface + Botometer integration |
 | **Model Zoo** | Not started | Add `llama_local.py`, `gpt4_gateway.py`, `models/router.py` for tiered LLM sentiment |
