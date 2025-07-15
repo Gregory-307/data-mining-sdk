@@ -187,11 +187,12 @@ and unit-tests fully reproducible with **zero** network.
 ---
 ## Demo notebook (Colab-friendly)
 The repo contains a draft source file at
-`docs/demo_notebook_draft.py` which is converted into a Jupyter notebook via:
+`docs/demo_notebook_v2_draft.py` which is converted into a Jupyter notebook via:
 
 ```bash
-scripts/convert_demo.py    # generates docs/demo.ipynb
-scripts/run_demo.py        # executes it head-less (used in CI)
+# generate & execute the **v2** notebook
+scripts/convert_demo.py --draft docs/demo_notebook_v2_draft.py --out docs/demo_v2.ipynb
+scripts/run_demo.py --nb docs/demo_v2.ipynb
 ```
 
 The notebook is **self-bootstrapping** – when opened in Colab it clones the repo
@@ -282,19 +283,21 @@ import warnings, web_search_sdk.scrapers.trends  # warning printed once
 --- 
 ---
 ## Demo Notebook Contents (v0.3)
-The generated notebook (`docs/demo.ipynb`) now walks through **ten** focused
+The generated notebook (`docs/demo_v2.ipynb`) now walks through **twelve** focused
 examples – each runnable offline via fixtures:
 
 1. DuckDuckGo top-words (primary engine)
 2. Wikipedia top-words
 3. RelatedWords synonym expansion
 4. Google News RSS keywords
-5. Google Trends interest‐over-time *(optional online)*
-6. Stock OHLCV fetch via yfinance *(optional online)*
-7. Parallel scraping with `gather_scrapers`
+5. Paywall article retrieval (Bloomberg/CNBC)
+6. Optional Google SERP fallback *(guarded by RUN_GOOGLE)*
+7. Twitter login & sample scrape *(guarded by RUN_TWITTER)*
 8. Output helpers – `to_json`, `to_csv`, append
-9. Utility helpers – rate-limiter, tokenise / remove_stopwords / most_common, custom UA rotation
-10. Advanced debugging – `LOG_SCRAPERS` file output + `DEBUG_TRACE` body preview
+9. Text helpers – `tokenise`, `remove_stopwords`, `most_common`
+10. Rate-limit decorator example
+11. Parallel scraping with `gather_scrapers`
+12. Advanced debugging – `LOG_SCRAPERS` file output + `DEBUG_TRACE` body preview
 
 Set `OFFLINE_MODE=1` to skip network-dependent cells; set `RUN_GOOGLE=1` to
 activate the Google SERP fallback cell.
@@ -308,11 +311,10 @@ Added since v0.2:
 | `scrapers.wikipedia_top_words` | Token frequency from Wikipedia page |
 | `scrapers.related.related_words` | Synonyms via RelatedWords.org |
 | `scrapers.news.google_news_top_words` | Keywords from Google News headlines |
-| `scrapers.trends.interest_over_time` | PyTrends time-series curve |
 | `scrapers.stock.fetch_stock_data` | OHLCV DataFrame via yfinance |
 | `utils.rate_limit.rate_limiter` | Async token-bucket decorator |
 | `utils.text.tokenise / remove_stopwords / most_common` | Text helpers used by scrapers |
 | `utils.output.to_csv` | CSV writer/append utility |
 | `ScraperContext.choose_ua()` | Random UA pick from custom list |
 
-All of these are showcased in the notebook. 
+All of these are showcased in the notebook.
