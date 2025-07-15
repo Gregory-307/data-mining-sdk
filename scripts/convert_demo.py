@@ -49,4 +49,11 @@ if current_type and current_lines:
 nb.metadata["kernelspec"] = {"name": "python3", "display_name": "Python 3"}
 
 OUT_PATH.write_text(nbf.writes(nb), encoding="utf-8")
-print(f"Notebook written to {OUT_PATH.relative_to(Path.cwd())}") 
+
+# Friendly path print – works on Windows too
+try:
+    rel = OUT_PATH.resolve().relative_to(Path.cwd())
+except ValueError:
+    rel = OUT_PATH.resolve()
+
+print(f"Notebook written to {rel}") 
