@@ -41,12 +41,20 @@ if not os.getenv("SKIP_INSTALL"):
         print("Installing package in editable mode…")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "-e", f"{ROOT}[browser]"])
 
-    # Install Playwright browsers once (idempotent)
+    # Ensure Playwright Python package + browsers (idempotent)
     try:
         import playwright  # type: ignore
+    except ImportError:
+        print("Installing Playwright Python package…")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "playwright"])
+        import importlib
+        playwright = importlib.import_module("playwright")  # type: ignore
+
+    # Install browser binaries (runs noop if already installed)
+    try:
         subprocess.check_call([sys.executable, "-m", "playwright", "install", "--with-deps"])
     except Exception as exc:  # noqa: BLE001
-        print("Playwright setup skipped/failed:", exc)
+        print("Playwright browser install skipped/failed:", exc)
 
 # %% [markdown]
 # ## 2  Quick Smoke Test
