@@ -6,4 +6,7 @@ __all__ = [
     "wikipedia_top_words",
     "google_news_top_words",
     "google_web_top_words",
-] 
+]
+
+# Semantic version of the SDK – keep in sync with Progress_Report.
+__version__ = "0.2.1" 
