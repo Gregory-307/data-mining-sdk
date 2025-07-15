@@ -42,19 +42,25 @@ if DEBUG_ENABLED and not getattr(httpx, "_patched_for_logging", False):
 
         # read() consumes the stream only once – cache content, then assign back
         content = await response.aread()
-        preview = content[:200]
-        try:
-            preview_text = preview.decode("utf-8", errors="replace")
-        except Exception:
-            preview_text = str(preview)
+        body_len = len(content)
+        preview_text = None
+        if os.getenv("DEBUG_TRACE") in {"1", "true", "True"}:
+            preview_slice = content[:1024]
+            try:
+                preview_text = preview_slice.decode("utf-8", errors="replace")
+            except Exception:
+                preview_text = str(preview_slice)
 
-        logger.info(
-            "response",
-            status=response.status_code,
-            url=str(response.request.url),
-            headers=dict(response.headers),
-            preview=preview_text,
-        )
+        log_kwargs = {
+            "status": response.status_code,
+            "url": str(response.request.url),
+            "headers": dict(response.headers),
+            "body_len": body_len,
+        }
+        if preview_text is not None:
+            log_kwargs["preview"] = preview_text
+
+        logger.info("response", **log_kwargs)
 
         # Restore body for downstream consumers
         response._content = content  # type: ignore[attr-defined]

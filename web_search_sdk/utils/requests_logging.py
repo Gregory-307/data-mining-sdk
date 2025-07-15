@@ -24,14 +24,19 @@ if os.getenv("DEBUG_SCRAPERS") in {"1", "true", "True"} and not getattr(requests
 
         resp: requests.Response = _orig_request(self, method, url, *args, **kwargs)
 
-        preview = resp.text[:200]
-        logger.info(
-            "response",
-            status=resp.status_code,
-            url=resp.url,
-            headers=dict(resp.headers),
-            preview=preview,
-        )
+        body_len = len(resp.content) if resp.content is not None else 0
+        log_kwargs: Dict[str, Any] = {
+            "status": resp.status_code,
+            "url": resp.url,
+            "headers": dict(resp.headers),
+            "body_len": body_len,
+        }
+
+        if os.getenv("DEBUG_TRACE") in {"1", "true", "True"}:
+            preview = resp.text[:1024]
+            log_kwargs["preview"] = preview
+
+        logger.info("response", **log_kwargs)
         return resp
 
     requests.Session.request = _patched_request  # type: ignore[assignment]
