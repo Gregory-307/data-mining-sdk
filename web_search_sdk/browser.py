@@ -12,6 +12,10 @@ from __future__ import annotations
 import asyncio
 import random
 from typing import Callable
+import time
+import os
+from web_search_sdk.utils.logging import get_logger
+logger = get_logger("browser")
 
 from web_search_sdk.scrapers.base import ScraperContext, run_in_thread
 
@@ -116,6 +120,21 @@ async def fetch_html(term: str, url_fn: Callable[[str], str], ctx: ScraperContex
     fallbacks without exceptions.
     """
 
+    start_ts = time.perf_counter()
+
+    def _emit(html: str, scraper_tag: str):
+        if ctx.debug or os.getenv("LOG_SCRAPERS"):
+            elapsed_ms = int((time.perf_counter() - start_ts) * 1000)
+            logger.info(
+                "telemetry",
+                url=url_fn(term),
+                status=200 if html else 0,
+                elapsed_ms=elapsed_ms,
+                content_len=len(html),
+                scraper=scraper_tag,
+            )
+        return html
+
     if ctx.browser_type in {"playwright", "playwright_stealth"}:
         if not _PW_AVAILABLE:
             if ctx.debug:
@@ -143,11 +162,12 @@ async def fetch_html(term: str, url_fn: Callable[[str], str], ctx: ScraperContex
                 await page.goto(url, timeout=int(ctx.timeout * 1000))
                 html = await page.content()
                 await browser.close()
-                return html or ""
+                return _emit(html or "", "browser-playwright")
         except Exception as exc:  # pragma: no cover – runtime error
             if ctx.debug:
                 print(f"[browser:PW] Error: {exc}")
             return ""
 
     # Fallback to Selenium (threaded) for all other cases
-    return await run_in_thread(_fetch_sync, term, url_fn, ctx) 
+    html = await run_in_thread(_fetch_sync, term, url_fn, ctx)
+    return _emit(html, "browser-selenium") 

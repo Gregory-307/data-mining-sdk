@@ -14,6 +14,8 @@ import asyncio
 import random
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Dict, List, Optional
+import time
+import os
 
 import httpx
 from .logging import get_logger
@@ -72,6 +74,7 @@ async def fetch_text(
     headers: Dict[str, str] | None = None,
     user_agents: List[str] | None = None,
     ca_file: str | None = None,
+    scraper: str = "http",
 ) -> str:
     """Fetch a URL and return `response.text` with retry/backoff.
 
@@ -86,8 +89,23 @@ async def fetch_text(
         try:
             logger.debug("fetch", url=url, attempt=attempt)
             async with get_async_client(timeout=timeout, proxy=proxy, headers=headers, ca_file=ca_file) as client:
+                start = time.perf_counter()
                 resp = await client.get(url)
+                elapsed_ms = int((time.perf_counter() - start) * 1000)
                 resp.raise_for_status()
+                # Telemetry ---------------------------------------------------
+                if (
+                    os.getenv("LOG_SCRAPERS")
+                    or os.getenv("DEBUG_SCRAPERS") in {"1", "true", "True"}
+                ):
+                    logger.info(
+                        "telemetry",
+                        url=url,
+                        status=resp.status_code,
+                        elapsed_ms=elapsed_ms,
+                        content_len=len(resp.content),
+                        scraper=scraper,
+                    )
                 return resp.text
         except Exception as exc:
             logger.warning("fetch_error", url=url, attempt=attempt, error=str(exc))
