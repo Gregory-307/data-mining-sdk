@@ -293,7 +293,7 @@ examples – each runnable offline via fixtures:
 6. Stock OHLCV fetch via yfinance *(optional online)*
 7. Parallel scraping with `gather_scrapers`
 8. Output helpers – `to_json`, `to_csv`, append
-9. Utility helpers – rate-limiter, slugify / strip symbols, custom UA rotation
+9. Utility helpers – rate-limiter, tokenise / remove_stopwords / most_common, custom UA rotation
 10. Advanced debugging – `LOG_SCRAPERS` file output + `DEBUG_TRACE` body preview
 
 Set `OFFLINE_MODE=1` to skip network-dependent cells; set `RUN_GOOGLE=1` to
@@ -311,7 +311,7 @@ Added since v0.2:
 | `scrapers.trends.interest_over_time` | PyTrends time-series curve |
 | `scrapers.stock.fetch_stock_data` | OHLCV DataFrame via yfinance |
 | `utils.rate_limit.rate_limiter` | Async token-bucket decorator |
-| `utils.text.slugify / strip_symbols` | String helpers used by scrapers |
+| `utils.text.tokenise / remove_stopwords / most_common` | Text helpers used by scrapers |
 | `utils.output.to_csv` | CSV writer/append utility |
 | `ScraperContext.choose_ua()` | Random UA pick from custom list |
 
