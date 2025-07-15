@@ -27,7 +27,7 @@ else:
 if not NB_PATH.exists():
     sys.exit("Notebook not found – run convert_demo.py first")
 
-with NB_PATH.open() as f:
+with NB_PATH.open(encoding="utf-8") as f:
     nb = nbformat.read(f, as_version=4)
 
 kernel_name = nb.metadata.get("kernelspec", {}).get("name", "python3")
