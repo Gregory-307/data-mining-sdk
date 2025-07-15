@@ -31,7 +31,7 @@ async def test_google_web_html_parse(monkeypatch):
     # Monkey-patch internal fetch to avoid network
     monkeypatch.setattr(gw, "_fetch_html", fake_fetch)
 
-    ctx = ScraperContext(debug=False)
+    ctx = ScraperContext(debug=False, use_browser=True)
     words = await google_web_top_words("python", ctx=ctx, top_n=5)
 
     assert words, "Token list should not be empty"

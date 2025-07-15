@@ -121,8 +121,23 @@ async def fetch_serp_html(term: str, ctx: ScraperContext | None = None) -> str:
     CAPTCHA page.  Selenium rendering is slow but markedly more reliable in
     low-volume scenarios.
     """
+    import warnings
 
     ctx = ctx or ScraperContext()
+
+    # ------------------------------------------------------------------
+    # Enforce browser-only path (plain HTTP disabled). When caller did not
+    # request a browser backend we emit a RuntimeWarning and return "" so
+    # upstream code can decide how to proceed.
+    # ------------------------------------------------------------------
+
+    if not ctx.use_browser:
+        warnings.warn(
+            "Plain HTTP scraping for Google is disabled. Set ScraperContext(use_browser=True) ",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return ""
 
     # ------------------------------------------------------------------
     # When *any* browser backend is requested we skip the plain-HTTP path
