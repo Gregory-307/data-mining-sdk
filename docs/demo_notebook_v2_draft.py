@@ -64,9 +64,9 @@ print("✅ Environment ready")
 # pass on the CLI (defaults inside the script).  This takes <2 s.
 
 # %%
-import runpy, importlib
-print("web_search_sdk version:", importlib.import_module("web_search_sdk").__version__)
-runpy.run_path("smoke_test.py")
+import runpy, importlib.metadata as md, pathlib
+print("web_search_sdk version:", md.version("web-search-sdk"))
+runpy.run_path(str((pathlib.Path.cwd() / "web-search-sdk" / "smoke_test.py")))
 
 # %% [markdown]
 # ## 3  ScraperContext Cheatsheet
