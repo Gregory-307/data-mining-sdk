@@ -104,19 +104,47 @@ def _parse_html(html: str, top_n: int = _DEFAULT_TOP_N) -> List[str]:
 
     soup = BeautifulSoup(html, "html.parser")
 
-    # Each result is <a class="result__a">Title</a>
-    titles = [a.get_text(" ").strip() for a in soup.select("a.result__a")]
+    # ------------------------------------------------------------------
+    # Extract result blocks – DDG HTML endpoint structure
+    #   <a class="result__a">Title</a>
+    #   <a class="result__snippet">Snippet</a> OR <div class="result__snippet">
+    #   Optional  <a class="result__url" href="…"> (hidden)
+    # The parser now collects both *text* (for tokenisation) and *links* so
+    # callers that need outbound URLs can post-process.
+    # ------------------------------------------------------------------
 
-    # Snippets live in <a class="result__snippet"> or <div class="result__snippet">.
-    snippets = [
-        n.get_text(" ").strip()
-        for n in soup.select("a.result__snippet, div.result__snippet")
-    ]
+    titles_nodes = soup.select("a.result__a")
+    snippets_nodes = soup.select("a.result__snippet, div.result__snippet")
+    link_nodes = soup.select("a.result__url")
 
-    combined = " ".join(titles + snippets)
-    tokens = [t for t in _tokenise_and_bigrams(combined) if t not in _STOPWORDS]
+    titles = [n.get_text(" ").strip() for n in titles_nodes]
+    snippets = [n.get_text(" ").strip() for n in snippets_nodes]
+
+    # When DDG returns zero titles (rare but possible for empty result set)
+    # we fall back to any <h2> or <h3> that might denote "result" card.
+    if not titles:
+        titles = [h.get_text(" ").strip() for h in soup.find_all(["h2", "h3"])]
+
+    combined_text = " ".join(titles + snippets)
+
+    # ------------------------------------------------------------------
+    # Tokenisation – reuse shared helpers then drop stop-words and sort by
+    # frequency.  We also deduplicate while preserving frequency ranking.
+    # ------------------------------------------------------------------
+
+    tokens = [t for t in _tokenise_and_bigrams(combined_text) if t not in _STOPWORDS]
+
     counter = Counter(tokens)
-    return [tok for tok, _ in counter.most_common(top_n)]
+
+    # Preserve order by frequency but remove duplicates via dict keys.
+    top_tokens: List[str] = []
+    for tok, _freq in counter.most_common():
+        if tok not in top_tokens:
+            top_tokens.append(tok)
+        if len(top_tokens) == top_n:
+            break
+
+    return top_tokens
 
 
 # ---------------------------------------------------------------------------
