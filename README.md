@@ -283,7 +283,7 @@ import warnings, web_search_sdk.scrapers.trends  # warning printed once
 --- 
 ---
 ## Demo Notebook Contents (v0.3)
-The generated notebook (`docs/demo_v2.ipynb`) now walks through **twelve** focused
+The generated notebook ([docs/demo_v2.ipynb](docs/demo_v2.ipynb)) now walks through **twelve** focused
 examples – each runnable offline via fixtures:
 
 1. DuckDuckGo top-words (primary engine)
