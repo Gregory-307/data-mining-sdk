@@ -1,6 +1,6 @@
 """Unit test (HTML parsing only) for google_web_top_words.
 
-This test feeds a static HTML snippet into the internal _fetch_html monkeypatch;
+This test feeds a static HTML snippet into the internal _browser_fetch_html monkeypatch;
 it verifies token extraction and stop-word removal.  No live network calls.
 """
 
@@ -25,11 +25,11 @@ HTML_SNIPPET = """
 async def test_google_web_html_parse(monkeypatch):
     """Parser extracts tokens from static HTML snippet."""
 
-    async def fake_fetch(term: str, ctx: ScraperContext):  # noqa: D401
+    async def fake_browser_fetch(term: str, url_fn, ctx: ScraperContext):  # noqa: D401
         return HTML_SNIPPET
 
-    # Monkey-patch internal fetch to avoid network
-    monkeypatch.setattr(gw, "_fetch_html", fake_fetch)
+    # Monkey-patch browser fetch to avoid network
+    monkeypatch.setattr(gw, "_browser_fetch_html", fake_browser_fetch)
 
     ctx = ScraperContext(debug=False, use_browser=True)
     words = await google_web_top_words("python", ctx=ctx, top_n=5)
