@@ -1,4 +1,5 @@
 # flake8: noqa
+# ruff: noqa
 """Draft source for Web-Search SDK walk-through notebook.
 
 Each section below corresponds to a Jupyter *cell*; the converter script
@@ -34,7 +35,7 @@ if GIT_PRESENT:
     REPO_ROOT = str(pathlib.Path.cwd())
     print("Running inside repo – no clone needed")
 else:
-    REPO_URL = os.getenv("REPO_URL", "https://github.com/web-search-sdk/web-search-sdk.git")
+    REPO_URL = os.getenv("REPO_URL", "https://github.com/Gregory-307/web-search-sdk.git")
     WORKDIR = pathlib.Path("web-search-sdk").resolve()
     if not WORKDIR.exists():
         print("Cloning repo …", REPO_URL)
@@ -70,17 +71,12 @@ except Exception as exc:  # noqa: BLE001
     print("Playwright install skipped/failed:", exc)
 
 # %% [markdown]
-# ### Offline Mode (optional)
-# When network access is restricted (e.g., CI or airplane mode) you can set
-# the **OFFLINE_MODE** environment variable before running the demo.  All
-# HTTP requests are then stubbed out and the scrapers return deterministic
-# HTML fixtures bundled with the repo.  This keeps the notebook fast and
-# fully reproducible offline.
+# ### Offline Mode (info)
+# This section previously documented an environment stub. Network calls now run
+# directly, so no setup is required.
 
 # %%
-import os as _os
-if _os.getenv("OFFLINE_MODE") in {"1", "true", "True"}:
-    print("Running in OFFLINE_MODE – external network calls are disabled")
+# Offline mode guard removed; network calls will execute normally
 
 # %% [markdown]
 # ## 2  Smoke Test
@@ -138,30 +134,23 @@ from web_search_sdk.scrapers.news import google_news_top_words
 await google_news_top_words("bitcoin", ctx_http, top_n=20)
 
 # %% [markdown]
-# ## 4.4  Google Trends Interest Over Time *(Optional)*
-# Eye-ball seasonal spikes quickly with the PyTrends wrapper.  Disabled in
-# OFFLINE_MODE environments.
+# ## 4.4  Google Trends Interest Over Time
+# Historical interest curve via the PyTrends wrapper.
 
 # %%
-if _os.getenv("OFFLINE_MODE") not in {"1", "true", "True"}:
-    from web_search_sdk.scrapers.trends import interest_over_time
-    import pandas as pd
-    df = await interest_over_time("bitcoin", ctx_http)
-    display(df.tail())
-else:
-    print("Google Trends skipped – offline mode.")
+from web_search_sdk.scrapers.trends import interest_over_time
+import pandas as pd
+df = await interest_over_time("bitcoin")
+display(df.tail())
 
 # %% [markdown]
-# ## 4.5  Stock Price Fetch *(Optional)*
-# Quick OHLCV pull via yfinance for context charts.  Skipped when OFFLINE_MODE.
+# ## 4.5  Stock Price Fetch
+# Fetch OHLCV data via yfinance for context charts.
 
 # %%
-if _os.getenv("OFFLINE_MODE") not in {"1", "true", "True"}:
-    from web_search_sdk.scrapers.stock import fetch_stock_data
-    df_price = await fetch_stock_data("BTC-USD", ctx_http)
-    display(df_price.tail())
-else:
-    print("Stock price fetch skipped – offline mode.")
+from web_search_sdk.scrapers.stock import fetch_stock_data
+df_price = await fetch_stock_data("BTC-USD", ctx_http)
+display(df_price.tail())
 
 # %% [markdown]
 # ## 4.6  Parallel Scraping with `gather_scrapers`
@@ -176,32 +165,24 @@ terms = ["bitcoin", "ethereum", "dogecoin"]
 async def _parse_wrapper(html: str, term: str, ctx):
     return _ddg_parse(html, top_n=5)
 
-result_map = await gather_scrapers(
+tokens_list = await gather_scrapers(
     terms,
     fetch=_ddg_fetch,
     parse=_parse_wrapper,
     ctx=ctx_http,
 )
+result_map = dict(zip(terms, tokens_list))
 result_map
 
 # %% [markdown]
-# ## 5  Google SERP Fallback *(Optional)*
+# ## 5  Google SERP Fallback
 # DuckDuckGo is reliable enough for most use-cases; a Google fallback adds
-# extra latency and may hit CAPTCHA.  The cell below only runs when the
-# environment variable **RUN_GOOGLE=1** is set *and* OFFLINE_MODE is not.
-
-# ```python
-# export RUN_GOOGLE=1  # bash
-# ```
+# extra latency and may hit CAPTCHA but is now always executed for demo purposes.
 
 # %%
-import os as _os
-if _os.getenv("RUN_GOOGLE") in {"1", "true", "True"} and _os.getenv("OFFLINE_MODE") not in {"1", "true", "True"}:
-    from web_search_sdk.scrapers.google_web import google_web_top_words
-    tokens = await google_web_top_words("bitcoin swing", ctx_play, top_n=20)
-    print(tokens)
-else:
-    print("Google fallback skipped – set RUN_GOOGLE=1 to enable.")
+from web_search_sdk.scrapers.google_web import google_web_top_words
+tokens = await google_web_top_words("bitcoin swing", ctx_play, top_n=20)
+print(tokens)
 
 # %% [markdown]
 # ## 6  Combined Helper: `search_and_parse`
@@ -237,7 +218,17 @@ print(json_path, "->", os.path.getsize(json_path), "bytes")
 
 # %%
 from web_search_sdk.utils.output import to_csv
-rows = [{"term": t, "top5": ",".join(result_map[t])} for t in result_map]
+def _first_five_tokens(tok):
+    """Return up to first five token strings regardless of collection type."""
+    if isinstance(tok, dict):
+        seq = list(tok.keys())
+    elif isinstance(tok, (list, tuple, set)):
+        seq = list(tok)
+    else:
+        seq = [str(tok)]
+    return ",".join(map(str, seq[:5]))
+
+rows = [{"term": term, "top5": _first_five_tokens(tokens)} for term, tokens in result_map.items()]
 csv_path = "out/tokens.csv"
 to_csv(rows, csv_path, append=False)  # overwrite for demo
 print(csv_path, "->", os.path.getsize(csv_path), "bytes")
@@ -255,9 +246,9 @@ print("Appended second record to", json_path)
 
 # %%
 import asyncio
-from web_search_sdk.utils.rate_limit import rate_limiter
+from web_search_sdk.utils.rate_limit import rate_limited
 
-@rate_limiter(max_calls=2, period=1.0)
+@rate_limited(calls=2, period=1.0)
 async def _echo(i: int):
     print("tick", i)
 
@@ -268,83 +259,14 @@ await asyncio.gather(*[_echo(i) for i in range(5)])
 # A grab-bag of small string helpers used across scrapers.
 
 # %%
-from web_search_sdk.utils.text import slugify, strip_symbols
+from web_search_sdk.utils.text import tokenise, remove_stopwords, most_common
 
-raw = "Bitcoin's all-time high!"
-print("slugify:", slugify(raw))
-print("strip_symbols:", strip_symbols(raw))
+raw = "Bitcoin's all-time high price sparks FOMO!"
+tokens = tokenise(raw)
+print("tokens:", tokens)
+print("no stopwords:", remove_stopwords(tokens))
+print("top words:", most_common(tokens, 3))
 
 # %% [markdown]
 # ## 4.9  Custom User-Agent Rotation
-# `ScraperContext` can pick a random UA from a list each request – handy when
-# hitting rate-limited APIs.
-
-# %%
-custom_uas = [
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/123.0",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Edge/123.0",
-]
-ctx_ua = ScraperContext(user_agents=custom_uas)
-print([ctx_ua.choose_ua() for _ in range(5)])
-
-# %% [markdown]
-# ## 4.10  File Logging with `LOG_SCRAPERS`
-# Enable structured JSON logs to a file for post-mortem analysis.
-
-# %%
-import pathlib as _pl
-import os
-log_file = "scraper_debug.log"
-os.environ["LOG_SCRAPERS"] = log_file
-# Trigger one request to generate log line
-await duckduckgo_top_words("litecoin", ctx_http, top_n=5)
-print(log_file, "->", _pl.Path(log_file).stat().st_size, "bytes")
-
-# %% [markdown]
-# ### Body preview with `DEBUG_TRACE`
-
-# %%
-import os
-os.environ["DEBUG_TRACE"] = "1"
-await duckduckgo_top_words("xrp", ctx_http, top_n=3)
-print("DEBUG_TRACE complete – see structured preview in log output")
-
-# %% [markdown]
-# ## 9  Debugging & Telemetry
-# Enable DEBUG_SCRAPERS to emit structured httpx logs.
-
-# %%
-import os, importlib
-os.environ["DEBUG_SCRAPERS"] = "1"
-# Re-import to trigger patch
-importlib.reload(importlib.import_module("web_search_sdk.utils.http_logging"))
-await duckduckgo_top_words("ethereum merge", ctx_http, top_n=5)
-
-# %% [markdown]
-# ## 10  Browser Engine Benchmark *(Optional)*
-
-# %%
-import time, asyncio
-for ctx in (ctx_selen, ctx_play):
-    start = time.perf_counter()
-    await duckduckgo_top_words("btc", ctx, top_n=5)
-    print(ctx.browser_type, int((time.perf_counter() - start)*1000), "ms")
-
-# %% [markdown]
-# ## 11  Cleanup Helpers
-
-# %%
-import shutil, glob
-print("Log files:", glob.glob("*.log"))
-# !rm scraper_debug.log  # uncomment to clear
-
-# %% [markdown]
-# ## 12  FAQ / Troubleshooting
-# - **CAPTCHA / consent page?** Switch to `use_browser=True` with Playwright.
-# - **Need proxies?** Pass `proxy="http://user:pass@host:port"` to `ScraperContext`.
-# - **Timeouts?** Increase `timeout` in `fetch_text` helpers.
-
-# %% [markdown]
-# ## 13  Next Steps
-# • Explore twitter-sdk → `docs/new_dev_kickoff_plan.md`.
-# • Check Progress_Report_v0.2.0.md for roadmap. 
+# `ScraperContext`
