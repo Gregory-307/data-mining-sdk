@@ -88,7 +88,8 @@ print(await wikipedia_top_words("bitcoin", ctx_http, top_n=15))
 
 # %%
 from web_search_sdk.scrapers.related import related_words
-print(await related_words("bitcoin", ctx_http)[:15])
+_syn = await related_words("bitcoin", ctx_http)
+print(_syn[:15])
 
 # %% [markdown]
 # ### 4.4 Google News RSS – Keywords
