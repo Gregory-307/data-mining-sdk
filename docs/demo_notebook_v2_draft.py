@@ -34,41 +34,27 @@ Execute conversion via:
 # when already satisfied.
 
 # %%
-import subprocess, sys, pathlib, importlib.util, importlib
+import subprocess, sys, pathlib, os, sys
 
-ROOT = pathlib.Path(".").resolve()
+# Clone repo when notebook is opened outside the repository tree (e.g. Colab)
+REPO_URL = "https://github.com/Gregory-307/web-search-sdk.git"
+REPO_DIR = pathlib.Path("web-search-sdk")
 
-# 1️⃣ SDK install ------------------------------------------------------------
-try:
-    importlib.util.find_spec("web_search_sdk")  # type: ignore
-    print("web_search_sdk already present – install skipped ✅")
-except ImportError:
-    print("Installing Web-Search SDK …")
-    subprocess.check_call([
-        sys.executable,
-        "-m",
-        "pip",
-        "install",
-        "-q",
-        "-e",
-        f"{ROOT}[browser]",
-    ])
+if not REPO_DIR.exists():
+    print("Cloning repo …")
+    subprocess.check_call(["git", "clone", "--depth", "1", REPO_URL, str(REPO_DIR)])
 
-# 2️⃣ Playwright package -----------------------------------------------------
-try:
-    import playwright  # type: ignore
-    print("playwright Python package present – install skipped ✅")
-except ImportError:
-    print("Installing Playwright Python package …")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "playwright"])
-    playwright = importlib.import_module("playwright")  # type: ignore
+ROOT = REPO_DIR.resolve()
 
-# 3️⃣ Browser binaries -------------------------------------------------------
-try:
-    subprocess.check_call([sys.executable, "-m", "playwright", "install", "--with-deps"], stdout=subprocess.DEVNULL)
-    print("Playwright browsers installed ✅")
-except Exception as exc:  # noqa: BLE001
-    print("Playwright browser install skipped/failed:", exc)
+# Install SDK (editable) + Playwright package & browsers – always runs, safe and idempotent
+subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "-e", f"{ROOT}[browser]"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "playwright"])
+subprocess.check_call([sys.executable, "-m", "playwright", "install", "--with-deps"], stdout=subprocess.DEVNULL)
+
+# Make repo importable
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+print("✅ Environment ready")
 
 # %% [markdown]
 # ## 2  Quick Smoke Test
@@ -102,7 +88,8 @@ ctx_play  = ScraperContext(use_browser=True, browser_type="playwright_stealth")
 ctx_http, ctx_selen, ctx_play
 
 # %% [markdown]
-# ### 4.1 DuckDuckGo – Top Words
+# ## Part A – Scraping Helpers
+# ### A1 Keyword Extractors – DuckDuckGo SERP
 # Primary engine: zero CAPTCHA risk, lightweight HTML.  Returns top-N tokens
 # from the SERP snippets.
 
@@ -111,7 +98,7 @@ from web_search_sdk.scrapers.duckduckgo_web import duckduckgo_top_words
 print(await duckduckgo_top_words("bitcoin swing", ctx_http, top_n=15))
 
 # %% [markdown]
-# ### 4.2 Wikipedia – Top Words
+# ### A2 Keyword Extractors – Wikipedia Page
 # Low-latency and highly reliable.  Good sanity-check source for any term.
 
 # %%
@@ -119,7 +106,7 @@ from web_search_sdk.scrapers.wikipedia import wikipedia_top_words
 print(await wikipedia_top_words("bitcoin", ctx_http, top_n=15))
 
 # %% [markdown]
-# ### 4.3 RelatedWords – Synonyms
+# ### A3 Semantic Expansion – RelatedWords
 # Expands the seed term via semantic similarity API; useful for idea
 # generation or keyword expansion.
 
@@ -129,7 +116,7 @@ _syn = await related_words("bitcoin", ctx_http)
 print(_syn[:15])
 
 # %% [markdown]
-# ### 4.4 Google News RSS – Keywords
+# ### A4 Keyword Extractors – Google News RSS
 # Headlines surface fresh jargon earlier than static pages – this parser
 # extracts frequent tokens from the Google News RSS feed.
 
@@ -138,7 +125,7 @@ from web_search_sdk.scrapers.news import google_news_top_words
 print(await google_news_top_words("bitcoin", ctx_http, top_n=15))
 
 # %% [markdown]
-# ## 5  Google SERP Fallback *(optional)*
+# ### A5 Google SERP Fallback *(optional)*
 # Heavy and may hit CAPTCHA – **runs by default**. Set `DISABLE_GOOGLE=1` to skip in CI.
 
 # %%
@@ -151,7 +138,7 @@ else:
     print(await google_web_top_words("bitcoin swing", ctx_play, top_n=15))
 
 # %% [markdown]
-# ## 6  Paywall Article Retrieval
+# ### A6 Paywall Article Retrieval – Bloomberg/CNBC
 # Shows automatic switch to Playwright when a JS-heavy paywall blocks simple
 # HTTP.  Trimmed article body is printed to keep output concise.  Skips when
 # `OFFLINE_MODE=1`.
@@ -165,7 +152,8 @@ else:
     print(art[:400], "…")
 
 # %% [markdown]
-# ## 7  Twitter Login & Sample Scrape *(experimental)*
+# ## Part B – Social Media
+# ### B1 Twitter Login & Timeline Scrape *(optional)*
 # **Requires** env vars `TW_EMAIL`, `TW_PASS`.  Runs automatically when creds are present; otherwise skipped.
 
 # %%
@@ -192,7 +180,8 @@ else:
     print("[skipped] Provide TW_EMAIL and TW_PASS env vars to enable Twitter demo")
 
 # %% [markdown]
-# ## 8  Output Utilities
+# ## Part C – Toolkit Helpers
+# ### C1 Output Utilities (JSON/CSV)
 # Lightweight helpers that write structured results to JSON/CSV.  Both create
 # parent folders automatically and support **append** mode for easy logging.
 
@@ -210,7 +199,7 @@ to_csv([{"term": "btc", "hits": 120}], csv_path, append=False)
 print("Wrote", csv_path, "bytes:", pathlib.Path(csv_path).stat().st_size)
 
 # %% [markdown]
-# ## 9  Text Helpers
+# ### C2 Text Helpers
 # Tokenisation + stop-word removal + frequency counter in one line each.
 
 # %%
@@ -221,7 +210,7 @@ print("no stopwords:", remove_stopwords(tokenise(raw)))
 print("top:", most_common(tokenise(raw), 3))
 
 # %% [markdown]
-# ## 10  Rate-Limit Decorator
+# ### C3 Rate-Limit Decorator
 # Async token-bucket decorator – guarantees you never exceed X calls / period.
 
 # %%
@@ -235,7 +224,7 @@ async def _ping(i: int):
 await asyncio.gather(*[_ping(i) for i in range(5)])
 
 # %% [markdown]
-# ## 11  Parallel Scraping Example
+# ### C4 Parallel Scraping Helper
 # Uses `gather_scrapers` to fan-out N async tasks with a bounded semaphore.
 # Total runtime ≈ max(single request latency) instead of sum.
 
