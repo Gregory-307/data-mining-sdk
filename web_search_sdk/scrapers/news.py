@@ -18,6 +18,8 @@ from bs4 import BeautifulSoup
 from .news_legacy import top_words_sync
 
 from .base import ScraperContext, run_scraper, run_in_thread
+from web_search_sdk.utils.logging import get_logger
+logger = get_logger("NEWS")
 
 __all__ = ["google_news_top_words"]
 
@@ -90,7 +92,7 @@ async def google_news_top_words(
     try:
         words = await run_in_thread(top_words_sync, term, top_n=top_n, headers=ctx.headers if ctx else None, timeout=ctx.timeout if ctx else 20.0)
         if ctx and ctx.debug:
-            print(f"[GoogleNews-Legacy] {term} -> {len(words)} words")
+            logger.info("legacy_html", term=term, words=len(words))
         if words:
             return words
     except Exception:
@@ -102,9 +104,9 @@ async def google_news_top_words(
     try:
         words = await run_scraper(term, _fetch_rss, _parse_wrapper, ctx)
         if ctx and ctx.debug:
-            print(f"[GoogleNews-RSS] {term} -> {len(words)} words")
+            logger.info("rss_parse", term=term, words=len(words))
         return words
     except Exception:
         if ctx and ctx.debug:
-            print(f"[GoogleNews] {term} – no data found")
+            logger.info("no_data", term=term)
         return [] 

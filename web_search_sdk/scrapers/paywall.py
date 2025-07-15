@@ -13,6 +13,8 @@ from typing import Callable
 
 from web_search_sdk.scrapers.base import ScraperContext
 from web_search_sdk import browser as br
+from web_search_sdk.utils.logging import get_logger
+logger = get_logger("CNBC")
 
 __all__ = [
     "fetch_bloomberg",
@@ -34,7 +36,7 @@ def _extract_article(html: str) -> str:
 
 async def _quick_http_get(url: str, ctx: ScraperContext) -> str:
     try:
-        async with httpx.AsyncClient(timeout=ctx.timeout, proxies=ctx.proxy) as client:
+        async with httpx.AsyncClient(timeout=ctx.timeout, proxy=ctx.proxy) as client:
             resp = await client.get(url, headers=_HEADERS)
             resp.raise_for_status()
             return resp.text
@@ -50,12 +52,16 @@ async def _fetch_and_parse(url: str, ctx: ScraperContext) -> str:
     raw = await _quick_http_get(url, ctx)
     txt = _extract_article(raw)
     if len(txt) > 200:  # Heuristic: good article length
+        if ctx.debug:
+            logger.info("quick_http", url=url, chars=len(txt))
         return txt
 
     # 2) Browser fallback if enabled
     if ctx.use_browser:
         raw = await _fetch_via_browser(url, ctx)
         txt = _extract_article(raw)
+        if ctx.debug:
+            logger.info("browser_fallback", url=url, chars=len(txt))
     return txt
 
 # ---------------------------------------------------------------------------

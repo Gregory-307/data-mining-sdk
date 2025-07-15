@@ -17,6 +17,8 @@ from .base import ScraperContext, run_scraper, run_in_thread
 import random
 from ..utils.http import _DEFAULT_UA
 from ..browser import fetch_html as _browser_fetch_html, _SEL_AVAILABLE
+from web_search_sdk.utils.logging import get_logger
+logger = get_logger("GOOGLE")
 
 __all__ = ["google_web_top_words", "fetch_serp_html"]
 
@@ -64,7 +66,7 @@ async def _fetch_html(term: str, ctx: ScraperContext) -> str:
     )
     url = SEARCH_URL.format(_uparse.quote(term))
     if ctx.debug:
-        print(f"[GoogleWeb-HTTP] GET {url}")
+        logger.info("http_get", url=url)
     for attempt in range(ctx.retries + 1):
         try:
             async with httpx.AsyncClient(timeout=ctx.timeout, proxy=ctx.proxy) as client:
@@ -132,7 +134,7 @@ async def fetch_serp_html(term: str, ctx: ScraperContext | None = None) -> str:
     if ctx.use_browser:
         if ctx.debug:
             engine = ctx.browser_type
-            print(f"[GoogleWeb] Browser fast-path ({engine}) for '{term}'…")
+            logger.info("browser_fast_path", engine=engine, term=term)
 
         # Choose SERP URL – rich markup for Playwright variants
         url_builder = lambda t: (
@@ -163,7 +165,7 @@ async def fetch_serp_html(term: str, ctx: ScraperContext | None = None) -> str:
     # Browser fallback – use the *standard* Google markup (no gbv=1)
     if ctx.use_browser:
         if ctx.debug:
-            print(f"[GoogleWeb] Browser fallback for '{term}'…")
+            logger.info("browser_fallback", term=term)
 
         # Use the richer SERP layout when we have JS rendering
         url_builder = lambda t: (
