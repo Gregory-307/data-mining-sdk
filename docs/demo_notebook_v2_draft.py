@@ -125,7 +125,7 @@ from web_search_sdk.scrapers.news import google_news_top_words
 print(await google_news_top_words("bitcoin", ctx_http, top_n=15))
 
 # %% [markdown]
-# ### A5 Google SERP Fallback *(optional)*
+# ### A4 Google SERP Fallback *(optional)*
 # Heavy and may hit CAPTCHA – **runs by default**. Set `DISABLE_GOOGLE=1` to skip in CI.
 
 # %%
@@ -138,50 +138,22 @@ else:
     print(await google_web_top_words("bitcoin swing", ctx_play, top_n=15))
 
 # %% [markdown]
-# ### A6 Paywall Article Retrieval – Bloomberg/CNBC
-# Shows automatic switch to Playwright when a JS-heavy paywall blocks simple
-# HTTP.  Trimmed article body is printed to keep output concise.  Skips when
-# `OFFLINE_MODE=1`.
+# ### A5 Browser Fetch Example – CNBC (no paywall)
+# Demonstrates Playwright-powered rendering for dynamic pages. Fetches the
+# article HTML from CNBC (public, no paywall) and prints the first 400 chars.
 
 # %%
-from web_search_sdk.scrapers.paywall import fetch_bloomberg
-if os.getenv("OFFLINE_MODE"):
-    print("[skipped] Offline mode – using fixtures")
-else:
-    art = await fetch_bloomberg("https://www.bloomberg.com/news/articles/2023-12-01/bitcoin-price-breaks-40k", ctx_play)
-    print(art[:400], "…")
+from web_search_sdk.browser import fetch_html as _browser_fetch_html
+
+def _cnbc_url(term:str)->str:
+    return "https://www.cnbc.com/2023/12/01/bitcoin-rallies-above-40000.html"
+
+html = await _browser_fetch_html("bitcoin", _cnbc_url, ctx_play)
+print(html[:400], "…")
 
 # %% [markdown]
-# ## Part B – Social Media
-# ### B1 Twitter Login & Timeline Scrape *(optional)*
-# **Requires** env vars `TW_EMAIL`, `TW_PASS`.  Runs automatically when creds are present; otherwise skipped.
-
-# %%
-# Run when credentials are provided (no extra flag needed)
-tw_user = os.getenv("TW_EMAIL")
-tw_pass = os.getenv("TW_PASS")
-
-if tw_user and tw_pass:
-    # Minimal inline Playwright demo (pseudo-code for brevity)
-    from playwright.async_api import async_playwright  # type: ignore
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        await page.goto("https://twitter.com/login")
-        await page.fill("input[name='text']", tw_user)
-        await page.press("input[name='text']", "Enter")
-        await page.fill("input[name='password']", tw_pass)
-        await page.press("input[name='password']", "Enter")
-        await page.wait_for_selector("article")
-        html = await page.content()
-        print(html[:500], "…")
-        await browser.close()
-else:
-    print("[skipped] Provide TW_EMAIL and TW_PASS env vars to enable Twitter demo")
-
-# %% [markdown]
-# ## Part C – Toolkit Helpers
-# ### C1 Output Utilities (JSON/CSV)
+# ## Part B – Toolkit Helpers
+# ### B1 Output Utilities (JSON/CSV)
 # Lightweight helpers that write structured results to JSON/CSV.  Both create
 # parent folders automatically and support **append** mode for easy logging.
 
@@ -199,7 +171,7 @@ to_csv([{"term": "btc", "hits": 120}], csv_path, append=False)
 print("Wrote", csv_path, "bytes:", pathlib.Path(csv_path).stat().st_size)
 
 # %% [markdown]
-# ### C2 Text Helpers
+# ### B2 Text Helpers
 # Tokenisation + stop-word removal + frequency counter in one line each.
 
 # %%
@@ -210,7 +182,7 @@ print("no stopwords:", remove_stopwords(tokenise(raw)))
 print("top:", most_common(tokenise(raw), 3))
 
 # %% [markdown]
-# ### C3 Rate-Limit Decorator
+# ### B3 Rate-Limit Decorator
 # Async token-bucket decorator – guarantees you never exceed X calls / period.
 
 # %%
@@ -224,7 +196,7 @@ async def _ping(i: int):
 await asyncio.gather(*[_ping(i) for i in range(5)])
 
 # %% [markdown]
-# ### C4 Parallel Scraping Helper
+# ### B4 Parallel Scraping Helper
 # Uses `gather_scrapers` to fan-out N async tasks with a bounded semaphore.
 # Total runtime ≈ max(single request latency) instead of sum.
 
