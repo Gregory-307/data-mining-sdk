@@ -205,7 +205,9 @@ from web_search_sdk.scrapers.base import gather_scrapers
 from web_search_sdk.scrapers.duckduckgo_web import _fetch_html as _ddg_fetch, _parse_html as _ddg_parse
 
 terms = ["bitcoin", "ethereum", "solana"]
-async def _parse_wrapper(html: str, term: str, ctx):
+
+def _parse_wrapper(html: str, term: str, ctx):
+    """Synchronous parse function expected by gather_scrapers."""
     return _ddg_parse(html, top_n=5)
 
 print(await gather_scrapers(terms, fetch=_ddg_fetch, parse=_parse_wrapper, ctx=ctx_http))
