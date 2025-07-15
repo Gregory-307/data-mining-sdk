@@ -94,8 +94,13 @@ ctx_http, ctx_selen, ctx_play
 # from the SERP snippets.
 
 # %%
-from web_search_sdk.scrapers.duckduckgo_web import duckduckgo_top_words
-print(await duckduckgo_top_words("bitcoin swing", ctx_http, top_n=15))
+from web_search_sdk.scrapers.search import search_and_parse
+
+ddg_res = await search_and_parse("bitcoin rally", ctx_http, top_n=10)
+print("Links →")
+for l in ddg_res["links"]:
+    print(" •", l)
+print("\nTop tokens →", ddg_res["tokens"])
 
 # %% [markdown]
 # ### A2 Keyword Extractors – Wikipedia Page
@@ -103,7 +108,9 @@ print(await duckduckgo_top_words("bitcoin swing", ctx_http, top_n=15))
 
 # %%
 from web_search_sdk.scrapers.wikipedia import wikipedia_top_words
-print(await wikipedia_top_words("bitcoin", ctx_http, top_n=15))
+wiki_tokens = await wikipedia_top_words("bitcoin", ctx_http, top_n=15)
+print("Page → https://en.wikipedia.org/wiki/Bitcoin")
+print("Top tokens →", wiki_tokens)
 
 # %% [markdown]
 # ### A3 Semantic Expansion – RelatedWords
@@ -122,7 +129,8 @@ print(_syn[:15])
 
 # %%
 from web_search_sdk.scrapers.news import google_news_top_words
-print(await google_news_top_words("bitcoin", ctx_http, top_n=15))
+news_tokens = await google_news_top_words("bitcoin", ctx_http, top_n=15)
+print("Top headline tokens →", news_tokens)
 
 # %% [markdown]
 # ### A4 Google SERP Fallback *(optional)*
