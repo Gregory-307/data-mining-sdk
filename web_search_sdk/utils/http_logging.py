@@ -27,11 +27,12 @@ else:
 
 # Apply patch once ---------------------------------------------------------------------------
 if DEBUG_ENABLED and not getattr(httpx, "_patched_for_logging", False):
-    logger = get_logger("httpx")
-
     _orig_send = httpx.AsyncClient.send
 
     async def _patched_send(self: httpx.AsyncClient, request: httpx.Request, *args, **kwargs):  # type: ignore[override]
+        # Acquire logger lazily at call time so downstream monkey-patches on
+        # `get_logger("httpx")` are respected (important for unit tests).
+        logger = get_logger("httpx")
         logger.info(
             "request",
             method=request.method,

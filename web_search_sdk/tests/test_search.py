@@ -18,6 +18,10 @@ async def test_search_and_parse(monkeypatch):
         return HTML_SNIPPET
 
     from web_search_sdk.scrapers import google_web as gw
+    from web_search_sdk.scrapers import duckduckgo_web as ddg
+    # Patch DuckDuckGo SERP fetch (primary engine)
+    monkeypatch.setattr(ddg, "fetch_serp_html", _dummy_serp)
+    # Also patch Google fallback just in case
     monkeypatch.setattr(gw, "fetch_serp_html", _dummy_serp)
 
     ctx = ScraperContext()

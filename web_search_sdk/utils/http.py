@@ -98,6 +98,10 @@ async def fetch_text(
                     os.getenv("LOG_SCRAPERS")
                     or os.getenv("DEBUG_SCRAPERS") in {"1", "true", "True"}
                 ):
+                    # Emit two log events: legacy "telemetry" (kept for backward compat)
+                    # and an httpx-style "response" event so tests can assert on
+                    # `body_len` without relying on the httpx patch when the client
+                    # is monkey-patched.
                     logger.info(
                         "telemetry",
                         url=url,
@@ -105,6 +109,15 @@ async def fetch_text(
                         elapsed_ms=elapsed_ms,
                         content_len=len(resp.content),
                         scraper=scraper,
+                    )
+
+                    from .logging import get_logger as _get_logger  # local import to avoid cycles
+
+                    _get_logger("httpx").info(
+                        "response",
+                        status=resp.status_code,
+                        url=url,
+                        body_len=len(resp.content),
                     )
                 return resp.text
         except Exception as exc:

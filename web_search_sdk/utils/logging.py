@@ -87,6 +87,14 @@ structlog.configure(
     logger_factory=structlog.stdlib.LoggerFactory(),
 )
 
+_LOGGER_CACHE = {}
+
 
 def get_logger(name: str | None = None):
-    return structlog.get_logger(name) 
+    # Return the same instance for identical names so monkeypatching methods on
+    # the returned logger is reliable across separate calls (unit test helper).
+    if name in _LOGGER_CACHE:
+        return _LOGGER_CACHE[name]
+    logger = structlog.get_logger(name)
+    _LOGGER_CACHE[name] = logger
+    return logger 
