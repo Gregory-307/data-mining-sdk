@@ -46,13 +46,14 @@ Goal: Detect whether BTC/ETH swings are **sustained** (fundamental) or **transie
 | **Time-decay weighting** | Signals stale in <24 h | Apply exponential decay λ≈0.7/24 h |
 | **Cross-asset spillover** | BTC sentiment drives ETH risk | Add BTC sentiment feature to ETH model |
 | **Liquidity metrics evaluation** | Need proof hedge improves depth/spread | Log Δspread, VWAP slippage in validation |
+| **LLM cost/latency budgeting** | Cloud LLM expensive | P1: Token quota & on-prem fallback router |
 
 ---
 
 ## 5. High-Level Approach (no timeline)
 1. **Data Ingestion** — Async pull: tweets (Botometer-flagged), news, on-chain, order-book snapshots.  
 2. **Feature Layer** — De-bot, detect sarcasm, compute **1-minute** lag windows & liquidity deltas with exponential time-decay weighting (λ≈0.7 per 24 h per research).  
-3. **Model Ensemble** — **Benchmark multiple models (LLM embeddings, NHITS, XGBoost)** + rule-based lag trigger; pick winner on live PnL vs latency.  
+3. **Model Ensemble** — **Tiered stack: on-prem LLM (e.g., Llama-3-8B) → cloud LLM fallback (GPT-4) → NHITS/XGBoost baseline.** Route by confidence & cost.  
 4. **Score → Hedge** — Map score to hedge size; manual override if manipulation risk.  
 5. **Continuous Eval** — Walk-forward validation, Sharpe/drawdown monitor, **Δspread & slippage metrics**, alert on drift.
 

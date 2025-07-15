@@ -20,6 +20,7 @@ from collections import Counter
 from pathlib import Path
 from typing import List
 import urllib.parse as _uparse
+import os
 
 import httpx
 from bs4 import BeautifulSoup
@@ -162,7 +163,23 @@ async def fetch_serp_html(term: str, ctx: ScraperContext | None = None) -> str:
     """
 
     ctx = ctx or ScraperContext()
-    return await _fetch_html(term, ctx)
+    html = await _fetch_html(term, ctx)
+
+    # Optional debug dump ---------------------------------------------------
+    if os.getenv("DEBUG_DUMP") in {"1", "true", "True"} and html:
+        safe_term = _uparse.quote(term.replace(" ", "_"), safe="")
+        dump_dir = Path("tmp")
+        dump_dir.mkdir(exist_ok=True)
+        file_path = dump_dir / f"ddg_{safe_term}.html"
+        try:
+            file_path.write_text(html, encoding="utf-8")
+            if ctx.debug:
+                logger.info("html_dump", path=str(file_path))
+        except Exception as exc:
+            if ctx.debug:
+                logger.info("html_dump_error", error=str(exc))
+
+    return html
 
 
 async def duckduckgo_top_words(

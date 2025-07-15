@@ -15,6 +15,8 @@ __all__ = [
     "wikipedia_top_words",
     "google_news_top_words",
     "google_web_top_words",
+    "duckduckgo_top_words",
 ]
 
-from .google_web import google_web_top_words  # noqa: F401 
+from .google_web import google_web_top_words  # noqa: F401
+from .duckduckgo_web import duckduckgo_top_words  # noqa: F401 

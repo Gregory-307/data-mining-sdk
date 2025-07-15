@@ -172,17 +172,45 @@ Dashed edge = optional Selenium path activated when `ScraperContext(use_browser=
 ### Browser & Paywalls (one-liner)
 `ScraperContext(use_browser=True, browser_type="playwright")` enables JS rendering for Google CAPTCHAs & paywalls (Bloomberg/CNBC).  Selenium remains as a legacy option.
 
-### Testing & Coverage
+## Offline Mode
+When you need to run the toolkit in an **air-gapped** environment (CI without
+external network or airplane-mode laptop) set:
 
 ```bash
-# run tests
-python -m pytest -q
-
-# run with coverage (threshold ≥80 %)
-python -m pytest --cov=. -q
+export OFFLINE_MODE=1                 # or "true"
 ```
 
-CI enforces **≥80 %** coverage (legacy/network modules omitted).
+All outbound HTTP calls are short-circuited and the helpers return deterministic
+HTML fixtures packaged under `tests/fixtures/`.  This keeps the demo notebook
+and unit-tests fully reproducible with **zero** network.
+
+---
+## Demo notebook (Colab-friendly)
+The repo contains a draft source file at
+`docs/demo_notebook_draft.py` which is converted into a Jupyter notebook via:
+
+```bash
+scripts/convert_demo.py    # generates docs/demo.ipynb
+scripts/run_demo.py        # executes it head-less (used in CI)
+```
+
+The notebook is **self-bootstrapping** – when opened in Colab it clones the repo
+(if missing), installs the package in editable mode, Playwright browsers and
+then runs through several real-world scrapes (DuckDuckGo, paywall fetches,
+telemetry debug etc.).  When `OFFLINE_MODE=1` the notebook falls back to the
+fixture HTML so it stays lightning-fast.
+
+---
+### Testing & Coverage (local)
+
+```bash
+# run tests + coverage
+pytest --cov=web_search_sdk --cov-report=term -q
+```
+
+The CI pipeline always uploads a `coverage.xml` artifact; currently it does **not
+fail** the build on coverage percentage (we’re still adding new tests), but the
+report is available for inspection in GitHub Actions.
 
 ---
 ## Contributing
@@ -252,3 +280,39 @@ reminder so you can migrate without surprises.
 import warnings, web_search_sdk.scrapers.trends  # warning printed once
 ```
 --- 
+---
+## Demo Notebook Contents (v0.3)
+The generated notebook (`docs/demo.ipynb`) now walks through **ten** focused
+examples – each runnable offline via fixtures:
+
+1. DuckDuckGo top-words (primary engine)
+2. Wikipedia top-words
+3. RelatedWords synonym expansion
+4. Google News RSS keywords
+5. Google Trends interest‐over-time *(optional online)*
+6. Stock OHLCV fetch via yfinance *(optional online)*
+7. Parallel scraping with `gather_scrapers`
+8. Output helpers – `to_json`, `to_csv`, append
+9. Utility helpers – rate-limiter, slugify / strip symbols, custom UA rotation
+10. Advanced debugging – `LOG_SCRAPERS` file output + `DEBUG_TRACE` body preview
+
+Set `OFFLINE_MODE=1` to skip network-dependent cells; set `RUN_GOOGLE=1` to
+activate the Google SERP fallback cell.
+
+---
+### New Helper Reference
+Added since v0.2:
+
+| Helper | Purpose |
+|--------|---------|
+| `scrapers.wikipedia_top_words` | Token frequency from Wikipedia page |
+| `scrapers.related.related_words` | Synonyms via RelatedWords.org |
+| `scrapers.news.google_news_top_words` | Keywords from Google News headlines |
+| `scrapers.trends.interest_over_time` | PyTrends time-series curve |
+| `scrapers.stock.fetch_stock_data` | OHLCV DataFrame via yfinance |
+| `utils.rate_limit.rate_limiter` | Async token-bucket decorator |
+| `utils.text.slugify / strip_symbols` | String helpers used by scrapers |
+| `utils.output.to_csv` | CSV writer/append utility |
+| `ScraperContext.choose_ua()` | Random UA pick from custom list |
+
+All of these are showcased in the notebook. 

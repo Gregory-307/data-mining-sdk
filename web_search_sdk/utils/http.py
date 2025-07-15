@@ -17,6 +17,38 @@ from typing import AsyncIterator, Dict, List, Optional
 import time
 import os
 
+OFFLINE_MODE = os.getenv("OFFLINE_MODE") in {"1", "true", "True"}
+
+# Helper used only when OFFLINE_MODE enabled ------------------------------------------------
+if OFFLINE_MODE:
+    _FIXTURE_DIR = os.getenv("OFFLINE_FIXTURES", "tests/fixtures")
+
+    def _fixture_for_url(url: str) -> str:
+        """Return cached HTML fixture for *url* or a generic placeholder.
+
+        The mapping strategy is intentionally simple – the caller can set
+        OFFLINE_FIXTURES to a directory containing files named by the *netloc*
+        component (e.g. ``example.com.html``).  When no matching file is
+        found we fall back to a short placeholder so downstream parsers still
+        receive syntactically valid HTML.
+        """
+        import pathlib, urllib.parse, textwrap
+
+        parsed = urllib.parse.urlparse(url)
+        fname = f"{parsed.netloc}.html" if parsed.netloc else "fixture.html"
+        path = pathlib.Path(_FIXTURE_DIR, fname)
+        if path.exists():
+            return path.read_text(encoding="utf-8", errors="ignore")
+        # Generic stub – make sure it is HTML so BeautifulSoup etc. work
+        return textwrap.dedent(
+            f"""
+            <html>
+                <head><title>OFFLINE MODE</title></head>
+                <body><p>Offline fixture for {url}</p></body>
+            </html>
+            """
+        )
+
 import httpx
 from .logging import get_logger
 
@@ -80,6 +112,13 @@ async def fetch_text(
 
     Automatically injects a random UA if provided.
     """
+    # ------------------------------------------------------------------
+    # Offline stub: short-circuit *before* any network calls --------------
+    # ------------------------------------------------------------------
+    if OFFLINE_MODE:
+        logger.info("offline_fetch", url=url)
+        return _fixture_for_url(url)
+
     headers = headers.copy() if headers else {}
     if user_agents is None:
         user_agents = _DEFAULT_UA

@@ -1,14 +1,20 @@
-"""web-search-sdk demo
+"""web-search-sdk demo (Batch-7)
 
-Run:
-    python demo.py --term "btc rally" --url "https://www.bloomberg.com/..." --browser
+Quick-start (no arguments):
 
-The script:
-1. Expands your term via Google (tokens + links).
-2. Fetches full article text from a paywalled URL (Bloomberg/CNBC).
-All HTTP requests and parsed outputs are printed so you can inspect
-what was sent/received.  Links are printed as plain URLs – click them
-in most terminals/IDEs to open in a browser.
+    python demo.py
+
+Or customise:
+
+    python demo.py --term "btc rally" \
+        --url "https://www.bloomberg.com/..." --url "https://www.cnbc.com/..." \
+        --engine playwright
+
+What it does:
+1. Expands your term via **DuckDuckGo** (tokens + outbound links – far more reliable than Google without captchas).
+2. Optionally fetches the full article text from a pay-walled Bloomberg or CNBC URL and prints a snippet.
+
+All outbound HTTP requests and parsed outputs are echoed so you can inspect them.  Links are printed in plain form – click them in most terminals/IDEs to open in a browser.
 """
 from __future__ import annotations
 
@@ -18,15 +24,35 @@ from textwrap import indent, shorten
 
 from web_search_sdk.scrapers.base import ScraperContext
 from web_search_sdk.scrapers.search import search_and_parse
-from web_search_sdk.scrapers.google_web import google_web_top_words
+from web_search_sdk.scrapers.duckduckgo_web import duckduckgo_top_words
 from web_search_sdk.scrapers.paywall import fetch_bloomberg, fetch_cnbc
 
 
-async def run(term: str, url: str | None, engine: str) -> None:
-    """Run demo with the selected browser *engine*.
+DEFAULT_TERM = "superman box office"
+# Two pay-walled articles (CNBC + Bloomberg) to showcase paywall helpers
+DEFAULT_ARTICLES = [
+    "https://www.cnbc.com/2025/07/11/superman-thursday-preview-box-office.html",
+    "https://www.bloomberg.com/news/articles/2025-04-28/global-race-to-lure-us-researchers-intensifies-after-trump-cuts?embedded-checkout=true",
+]
 
-    engine: 'selenium' | 'playwright' | 'stealth'
+
+async def run(term: str | None, urls: list[str] | None, engine: str) -> None:
+    """Run the *full* demo pipeline – a click-through of every public helper.
+
+    The flow:
+    1. search_and_parse  – DuckDuckGo links/token preview
+    2. duckduckgo_top_words
+    3. related_words
+    4. wikipedia_top_words
+    5. google_news_top_words
+    6. fetch_bloomberg / fetch_cnbc for each hard-coded URL (paywall demo)
     """
+
+    if not term:
+        term = DEFAULT_TERM
+
+    if not urls:
+        urls = DEFAULT_ARTICLES.copy()
 
     browser_type = {
         "selenium": "selenium",
@@ -47,22 +73,45 @@ async def run(term: str, url: str | None, engine: str) -> None:
         print("  -", link)
     print("Top tokens:", res["tokens"])
 
-    print("\n=== google_web_top_words ===")
-    tokens = await google_web_top_words(term, ctx, top_n=20)
+    print("\n=== duckduckgo_top_words ===")
+    tokens = await duckduckgo_top_words(term, ctx, top_n=20)
     print(tokens)
 
-    if url:
-        fetch_fn = fetch_bloomberg if "bloomberg.com" in url else fetch_cnbc
-        print(f"\n=== fetch_{fetch_fn.__name__.split('_')[-1]} ===")
-        html = await fetch_fn(url, ctx)
+    # ------------------------------------------------------------------
+    # Additional helper demos ("other stuff")
+    # ------------------------------------------------------------------
+    from web_search_sdk.scrapers.related import related_words
+    from web_search_sdk.scrapers.wikipedia import wikipedia_top_words
+    from web_search_sdk.scrapers.news import google_news_top_words
+
+    print("\n=== related_words ===")
+    rel = await related_words(term, ctx)
+    print(rel[:30])
+
+    print("\n=== wikipedia_top_words ===")
+    wiki_toks = await wikipedia_top_words(term, ctx, top_n=20)
+    print(wiki_toks)
+
+    print("\n=== google_news_top_words ===")
+    news_toks = await google_news_top_words(term, ctx, top_n=20)
+    print(news_toks)
+
+    # ------------------------------------------------------------------
+    # Paywall article fetches (Bloomberg + CNBC)
+    # ------------------------------------------------------------------
+    for u in urls:
+        fetch_fn = fetch_bloomberg if "bloomberg.com" in u else fetch_cnbc
+        name = "bloomberg" if "bloomberg.com" in u else "cnbc"
+        print(f"\n=== fetch_{name} ===\nURL: {u}")
+        html = await fetch_fn(u, ctx)
         snippet = indent(shorten(html, width=400, placeholder="…"), "    ")
         print("Article snippet:\n" + snippet)
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description="web-search-sdk demo")
-    ap.add_argument("--term", required=True, help="search term, e.g. 'btc rally'")
-    ap.add_argument("--url", help="Bloomberg or CNBC article URL (optional)")
+    ap = argparse.ArgumentParser(description="web-search-sdk demo – full click-through")
+    ap.add_argument("--term", required=False, help="search term (default: 'superman box office')")
+    ap.add_argument("--url", action="append", help="Article URL(s); can be given multiple times. Default includes CNBC & Bloomberg samples")
 
     ap.add_argument(
         "--engine",
