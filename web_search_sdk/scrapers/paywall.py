@@ -36,7 +36,7 @@ def _extract_article(html: str) -> str:
 
 async def _quick_http_get(url: str, ctx: ScraperContext) -> str:
     try:
-        async with httpx.AsyncClient(timeout=ctx.timeout, proxy=ctx.proxy) as client:
+        async with httpx.AsyncClient(timeout=ctx.timeout, proxies=ctx.proxy) as client:
             resp = await client.get(url, headers=_HEADERS)
             resp.raise_for_status()
             return resp.text

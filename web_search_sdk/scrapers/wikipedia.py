@@ -12,7 +12,7 @@ import asyncio
 import re
 from collections import Counter
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
 
 import httpx
 from bs4 import BeautifulSoup
@@ -22,7 +22,7 @@ from .wikipedia_legacy import top_words_sync
 
 from .base import ScraperContext, run_scraper, run_in_thread
 
-__all__ = ["wikipedia_top_words"]
+__all__ = ["wikipedia_top_words", "wikipedia", "wikipedia_raw"]
 
 BASE_URL = "https://en.wikipedia.org/wiki/{}"
 DEFAULT_TOP_N = 100
@@ -86,9 +86,82 @@ def _parse_html(raw: str, term: str, ctx: ScraperContext, top_n: int = DEFAULT_T
     return [tok for tok, _ in counter.most_common(top_n)]
 
 
+def _parse_html_structured(raw: str, term: str, ctx: ScraperContext, top_n: int = DEFAULT_TOP_N) -> Dict[str, Any]:
+    """Parse Wikipedia HTML and return structured data with title, content, links, and top_words."""
+    soup = BeautifulSoup(raw, "html.parser")
+    
+    # Extract title
+    title_elem = soup.find("h1", {"id": "firstHeading"}) or soup.find("title")
+    title = title_elem.get_text().strip() if title_elem else term
+    
+    # Extract main content
+    content_div = soup.find("div", {"id": "mw-content-text"}) or soup.find("main", {"id": "content"})
+    if content_div is None:
+        return {"title": title, "content": "", "links": [], "top_words": []}
+    
+    # Extract content text
+    content = content_div.get_text(" ").strip()
+    
+    # Extract internal Wikipedia links
+    links = []
+    for link in content_div.find_all("a", href=True):
+        href = link.get("href", "")
+        if href.startswith("/wiki/") and not href.startswith("/wiki/Special:") and not href.startswith("/wiki/File:"):
+            link_text = link.get_text().strip()
+            if link_text:
+                links.append(link_text)
+    
+    # Extract frequency-based tokens
+    tokens = _tokenise(content)
+    filtered = [tok for tok in tokens if tok not in _STOPWORDS]
+    if not filtered:
+        filtered = tokens
+    counter = Counter(filtered)
+    top_words = [tok for tok, _ in counter.most_common(top_n)]
+    
+    return {
+        "title": title,
+        "content": content,
+        "links": links[:top_n],  # Limit links to top_n
+        "top_words": top_words
+    }
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
+async def wikipedia_raw(
+    term: str,
+    ctx: ScraperContext = None
+) -> str:
+    """Return raw HTML from Wikipedia page."""
+    if ctx is None:
+        ctx = ScraperContext(use_browser=False)  # HTTP context works fine for Wikipedia
+    
+    return await _fetch_html(term, ctx)
+
+
+async def wikipedia(
+    term: str,
+    ctx: ScraperContext = None,
+    top_n: int = DEFAULT_TOP_N
+) -> Dict[str, Any]:
+    """Return structured Wikipedia data with title, content, links, and top_words."""
+    if ctx is None:
+        ctx = ScraperContext(use_browser=False)  # HTTP context works fine for Wikipedia
+    
+    def _parse_wrapper(raw: str, t: str, c: ScraperContext):
+        return _parse_html_structured(raw, t, c, top_n)
+
+    try:
+        result = await run_scraper(term, _fetch_html, _parse_wrapper, ctx)
+        return result
+    except Exception as e:
+        if ctx and ctx.debug:
+            print(f"[Wikipedia-Structured] failed due to {e}")
+        return {"title": term, "content": "", "links": [], "top_words": []}
+
 
 async def wikipedia_top_words(
     term: str,

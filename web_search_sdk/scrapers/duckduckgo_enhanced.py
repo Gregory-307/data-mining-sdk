@@ -13,10 +13,11 @@ from .base import ScraperContext
 from web_search_sdk.utils.logging import get_logger
 from urllib.parse import urlparse
 import asyncio
+from web_search_sdk.utils.text import tokenise, most_common
 
 logger = get_logger("DDG-Enhanced")
 
-__all__ = ["duckduckgo_search_enhanced"]
+__all__ = ["ddg_search_and_parse", "ddg_search_raw"]
 
 _DDG_SEARCH_URL = "https://html.duckduckgo.com/html/?q={}&kl=us-en"
 
@@ -30,7 +31,7 @@ async def _fetch_html(term: str, ctx: ScraperContext) -> str:
         logger.info("http_get", url=url)
     for attempt in range(ctx.retries + 1):
         try:
-            async with httpx.AsyncClient(timeout=ctx.timeout, proxy=ctx.proxy) as client:
+            async with httpx.AsyncClient(timeout=ctx.timeout, proxies=ctx.proxy) as client:
                 resp = await client.get(url, headers=headers, follow_redirects=True)
                 resp.raise_for_status()
                 return resp.text
@@ -52,7 +53,7 @@ def _parse_html(html: str, top_n: int = 10) -> Dict[str, Any]:
     soup = BeautifulSoup(html, "html.parser")
     results = []
     links = []
-    tokens = []
+    all_text = []
     # DuckDuckGo result blocks
     for result in soup.select("div.result"):  # Each result block
         title_node = result.select_one("a.result__a")
@@ -70,34 +71,57 @@ def _parse_html(html: str, top_n: int = 10) -> Dict[str, Any]:
                 "url": url,
                 "source": _extract_source(url) if url else None
             })
-        # Token extraction for top_n
+        # Collect all text for frequency analysis
         if title:
-            tokens.extend(title.split())
+            all_text.append(title)
         if snippet:
-            tokens.extend(snippet.split())
+            all_text.append(snippet)
         if len(results) >= top_n:
             break
-    # Deduplicate tokens, keep order
-    seen = set()
-    tokens_unique = []
-    for t in tokens:
-        if t not in seen:
-            tokens_unique.append(t)
-            seen.add(t)
-        if len(tokens_unique) >= top_n:
-            break
+    
+    # Extract frequency-based tokens
+    combined_text = " ".join(all_text)
+    tokens = tokenise(combined_text)
+    top_words = most_common(tokens, top_n)
+    
     return {
         "links": links[:top_n],
-        "tokens": tokens_unique,
+        "tokens": top_words,  # Frequency-based tokens
+        "top_words": top_words,  # Alias for consistency with menu
         "results": results[:top_n]
     }
 
-async def duckduckgo_search_enhanced(
+async def ddg_search_raw(
     term: str,
-    ctx: ScraperContext,
+    ctx: ScraperContext = None
+) -> BeautifulSoup:
+    """Return raw BeautifulSoup object from DuckDuckGo search."""
+    if ctx is None:
+        ctx = ScraperContext(use_browser=False)  # HTTP context works fine for DuckDuckGo
+    
+    # Validate context
+    if ctx.use_browser:
+        print("💡 Tip: ddg_search_raw works fine with HTTP context (faster). Browser context is optional.")
+    
+    html = await _fetch_html(term, ctx)
+    if not html:
+        return BeautifulSoup("", "html.parser")
+    return BeautifulSoup(html, "html.parser")
+
+
+async def ddg_search_and_parse(
+    term: str,
+    ctx: ScraperContext = None,
     top_n: int = 10
 ) -> Dict[str, Any]:
     """Enhanced DuckDuckGo search with structured results."""
+    if ctx is None:
+        ctx = ScraperContext(use_browser=False)  # HTTP context works fine for DuckDuckGo
+    
+    # Validate context
+    if ctx.use_browser:
+        print("💡 Tip: ddg_search_and_parse works fine with HTTP context (faster). Browser context is optional.")
+    
     html = await _fetch_html(term, ctx)
     if not html:
         return {"links": [], "tokens": [], "results": []}

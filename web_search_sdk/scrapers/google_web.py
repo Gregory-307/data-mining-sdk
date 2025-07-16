@@ -69,7 +69,7 @@ async def _fetch_html(term: str, ctx: ScraperContext) -> str:
         logger.info("http_get", url=url)
     for attempt in range(ctx.retries + 1):
         try:
-            async with httpx.AsyncClient(timeout=ctx.timeout, proxy=ctx.proxy) as client:
+            async with httpx.AsyncClient(timeout=ctx.timeout, proxies=ctx.proxy) as client:
                 resp = await client.get(url, headers=headers, follow_redirects=True)
                 resp.raise_for_status()
                 return resp.text
@@ -204,15 +204,19 @@ async def fetch_serp_html(term: str, ctx: ScraperContext | None = None) -> str:
 
 async def google_web_top_words(
     term: str,
-    ctx: ScraperContext | None = None,
+    ctx: ScraperContext = None,
     top_n: int = DEFAULT_TOP_N,
 ) -> List[str]:
-    """Return the most frequent words/bigrams on a Google SERP.
+    """Return most common words from Google search results for *term*."""
+    if ctx is None:
+        ctx = ScraperContext(use_browser=True)  # Google works better with browser context
+        print("💡 Using browser context for Google search (more reliable)")
+    
+    # Validate context
+    if not ctx.use_browser:
+        print("⚠️  Warning: google_web_top_words works better with browser context. Consider using ScraperContext(use_browser=True)")
 
-    Uses `fetch_serp_html` under the hood so it benefits from the same
-    HTTP → browser fallback cascade.
-    """
-    html = await fetch_serp_html(term, ctx)
-    if not html:
-        return []
-    return _parse_html(html, top_n) 
+    def _parse_wrapper(html: str, t: str, c: ScraperContext):
+        return _parse_html(html, t, c, top_n)
+
+    return await run_scraper(term, _fetch_serp_html, _parse_wrapper, ctx) 

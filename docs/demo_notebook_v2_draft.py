@@ -111,7 +111,7 @@ runpy.run_path(str((pathlib.Path.cwd() / "web-search-sdk" / "smoke_test.py")))
 # • **Debugging**: Verbose logging for troubleshooting  
 # 
 # **Why three different contexts?**
-# 
+#
 # The cell below creates three pre-configured contexts for different scenarios:
 # - `ctx_http`: Basic HTTP-only (fast, lightweight)
 # - `ctx_selen`: Selenium browser (reliable, slower)
@@ -140,8 +140,8 @@ def run_search_and_parse():
     async def _run():
         ddg_res = await search_and_parse("bitcoin rally", ctx_http, top_n=5)
         print("🔗 Links →")
-        for l in ddg_res["links"]:
-            print(" •", l)
+for l in ddg_res["links"]:
+    print(" •", l)
         print("\n🏷️  Top tokens →", ddg_res["tokens"])
         print("\n📋 Structured Results →")
         for i, result in enumerate(ddg_res.get("results", []), 1):
@@ -165,9 +165,9 @@ import asyncio
 
 def run_wikipedia_top_words():
     async def _run():
-        wiki_tokens = await wikipedia_top_words("bitcoin", ctx_http, top_n=15)
-        print("Page → https://en.wikipedia.org/wiki/Bitcoin")
-        print("Top tokens →", wiki_tokens)
+wiki_tokens = await wikipedia_top_words("bitcoin", ctx_http, top_n=15)
+print("Page → https://en.wikipedia.org/wiki/Bitcoin")
+print("Top tokens →", wiki_tokens)
     asyncio.run(_run())
 
 run_wikipedia_top_words()
@@ -183,8 +183,8 @@ import asyncio
 
 def run_related_words():
     async def _run():
-        _syn = await related_words("bitcoin", ctx_http)
-        print(_syn[:15])
+_syn = await related_words("bitcoin", ctx_http)
+print(_syn[:15])
     asyncio.run(_run())
 
 run_related_words()
@@ -200,8 +200,8 @@ import asyncio
 
 def run_google_news_top_words():
     async def _run():
-        news_tokens = await google_news_top_words("bitcoin", ctx_http, top_n=15)
-        print("Top headline tokens →", news_tokens)
+news_tokens = await google_news_top_words("bitcoin", ctx_http, top_n=15)
+print("Top headline tokens →", news_tokens)
     asyncio.run(_run())
 
 run_google_news_top_words()
@@ -220,7 +220,7 @@ else:
     import asyncio
     def run_google_web_top_words():
         async def _run():
-            print(await google_web_top_words("bitcoin swing", ctx_play, top_n=15))
+    print(await google_web_top_words("bitcoin swing", ctx_play, top_n=15))
         asyncio.run(_run())
     run_google_web_top_words()
 

@@ -82,7 +82,7 @@ async def main(term: str):
 
     print("\n📊 SMOKE TEST RESULTS")
     print("=" * 50)
-    
+
     results = {
         "google_web_top_words": gw,
         "wikipedia_top_words": wp,

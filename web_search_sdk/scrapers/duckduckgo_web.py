@@ -88,7 +88,7 @@ async def _fetch_html(term: str, ctx: ScraperContext) -> str:
 
     for attempt in range(ctx.retries + 1):
         try:
-            async with httpx.AsyncClient(timeout=ctx.timeout, proxy=ctx.proxy) as client:
+            async with httpx.AsyncClient(timeout=ctx.timeout, proxies=ctx.proxy) as client:
                 resp = await client.get(url, headers=headers, follow_redirects=True)
                 resp.raise_for_status()
                 return resp.text
@@ -184,11 +184,18 @@ async def fetch_serp_html(term: str, ctx: ScraperContext | None = None) -> str:
 
 async def duckduckgo_top_words(
     term: str,
-    ctx: ScraperContext | None = None,
+    ctx: ScraperContext = None,
     top_n: int = _DEFAULT_TOP_N,
 ) -> List[str]:
-    """Return the most frequent tokens/bigrams on a DDG SERP."""
-    html = await fetch_serp_html(term, ctx)
-    if not html:
-        return []
-    return _parse_html(html, top_n) 
+    """Return most common words from DuckDuckGo search results for *term*."""
+    if ctx is None:
+        ctx = ScraperContext(use_browser=False)  # HTTP context works fine for DuckDuckGo
+    
+    # Validate context
+    if ctx.use_browser:
+        print("💡 Tip: duckduckgo_top_words works fine with HTTP context (faster). Browser context is optional.")
+
+    def _parse_wrapper(html: str, t: str, c: ScraperContext):
+        return _parse_html(html, t, c, top_n)
+
+    return await run_scraper(term, _fetch_html, _parse_wrapper, ctx) 

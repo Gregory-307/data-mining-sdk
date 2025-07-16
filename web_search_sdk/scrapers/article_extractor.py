@@ -290,7 +290,7 @@ async def _fetch_html(url: str, ctx: ScraperContext) -> str:
     
     # Try HTTP first
     try:
-        async with httpx.AsyncClient(timeout=ctx.timeout, proxy=ctx.proxy) as client:
+        async with httpx.AsyncClient(timeout=ctx.timeout, proxies=ctx.proxy) as client:
             headers = ctx.headers.copy()
             headers.setdefault("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             headers.setdefault("Accept-Language", "en-US,en;q=0.9")
