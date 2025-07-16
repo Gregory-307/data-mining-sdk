@@ -24,8 +24,11 @@ try:
     from web_search_sdk.scrapers import (
         google_web_top_words,
         wikipedia_top_words,
+        wikipedia,
         related_words,
         google_news_top_words,
+        google_news,
+        ddg_search_and_parse,
         search_and_parse,
         extract_article_content,
     )  # type: ignore
@@ -56,8 +59,11 @@ except ModuleNotFoundError:
     from web_search_sdk.scrapers import (
         google_web_top_words,
         wikipedia_top_words,
+        wikipedia,
         related_words,
         google_news_top_words,
+        google_news,
+        ddg_search_and_parse,
         search_and_parse,
         extract_article_content,
     )  # type: ignore
@@ -73,12 +79,14 @@ async def main(term: str):
     tasks = [
         google_web_top_words(term, ctx=ctx, top_n=10),
         wikipedia_top_words(term, ctx=ctx, top_n=10),
+        wikipedia(term, ctx=ctx, top_n=10),
         related_words(term, ctx=ctx),
         google_news_top_words(term, ctx=ctx, top_n=10),
-        search_and_parse(term, ctx=ctx, top_n=5),
+        google_news(term, ctx=ctx, top_n=5),
+        ddg_search_and_parse(term, ctx=ctx, top_n=5),
     ]
 
-    gw, wp, rw, gn, sp = await asyncio.gather(*tasks, return_exceptions=True)
+    gw, wp, wpd, rw, gn, gnd, ddg = await asyncio.gather(*tasks, return_exceptions=True)
 
     print("\n📊 SMOKE TEST RESULTS")
     print("=" * 50)
@@ -86,24 +94,30 @@ async def main(term: str):
     results = {
         "google_web_top_words": gw,
         "wikipedia_top_words": wp,
+        "wikipedia (structured)": wpd,
         "related_words": rw,
         "google_news_top_words": gn,
-        "search_and_parse": sp,
+        "google_news (structured)": gnd,
+        "ddg_search_and_parse": ddg,
     }
     
     for name, result in results.items():
         print(f"\n🔸 {name}:")
         if isinstance(result, Exception):
             print(f"   ❌ Error: {result}")
+        elif name == "ddg_search_and_parse":
+            print(f"   Links: {len(result.get('links', []))}")
+            print(f"   Top words: {result.get('top_words', [])}")
+            print(f"   Results: {len(result.get('results', []))}")
+        elif name == "google_news (structured)":
+            print(f"   Headlines: {len(result.get('headlines', []))}")
+            print(f"   Top words: {result.get('top_words', [])}")
+        elif name == "wikipedia (structured)":
+            print(f"   Title: {result.get('title', '')}")
+            print(f"   Top words: {result.get('top_words', [])}")
+            print(f"   Links: {len(result.get('links', []))}")
         else:
-            if name == "search_and_parse":
-                # Special handling for structured results
-                if isinstance(result, dict) and "results" in result:
-                    print(f"   ✅ Success: {len(result.get('results', []))} structured results")
-                else:
-                    print(f"   ✅ Success: {len(result.get('links', []))} links, {len(result.get('tokens', []))} tokens")
-            else:
-                print(f"   ✅ Success: {result[:5]}{'...' if len(result) > 5 else ''}")
+            print(f"   ✅ Success: {result[:5]}{'...' if len(result) > 5 else ''}")
     
     print("\n" + "=" * 50)
     print("✅ Smoke test completed")

@@ -69,7 +69,7 @@ async def _fetch_html(term: str, ctx: ScraperContext) -> str:
         logger.info("http_get", url=url)
     for attempt in range(ctx.retries + 1):
         try:
-            async with httpx.AsyncClient(timeout=ctx.timeout, proxies=ctx.proxy) as client:
+            async with httpx.AsyncClient(timeout=ctx.timeout) as client:
                 resp = await client.get(url, headers=headers, follow_redirects=True)
                 resp.raise_for_status()
                 return resp.text
@@ -217,6 +217,6 @@ async def google_web_top_words(
         print("⚠️  Warning: google_web_top_words works better with browser context. Consider using ScraperContext(use_browser=True)")
 
     def _parse_wrapper(html: str, t: str, c: ScraperContext):
-        return _parse_html(html, t, c, top_n)
+        return _parse_html(html, top_n)
 
-    return await run_scraper(term, _fetch_serp_html, _parse_wrapper, ctx) 
+    return await run_scraper(term, fetch_serp_html, _parse_wrapper, ctx) 

@@ -31,7 +31,7 @@ async def _fetch_html(term: str, ctx: ScraperContext) -> str:
         logger.info("http_get", url=url)
     for attempt in range(ctx.retries + 1):
         try:
-            async with httpx.AsyncClient(timeout=ctx.timeout, proxies=ctx.proxy) as client:
+            async with httpx.AsyncClient(timeout=ctx.timeout) as client:
                 resp = await client.get(url, headers=headers, follow_redirects=True)
                 resp.raise_for_status()
                 return resp.text
