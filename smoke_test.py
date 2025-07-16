@@ -26,8 +26,11 @@ try:
         wikipedia_top_words,
         related_words,
         google_news_top_words,
+        search_and_parse,
+        extract_article_content,
     )  # type: ignore
     from web_search_sdk.scrapers.base import ScraperContext  # type: ignore
+    print("✅ SDK imported successfully (installed mode)")
 except ModuleNotFoundError:
     # Fallback: assume we are being run from the repository root where the
     # code lives in flat folders (scrapers/, utils/, …).  Inject the repo
@@ -55,10 +58,16 @@ except ModuleNotFoundError:
         wikipedia_top_words,
         related_words,
         google_news_top_words,
+        search_and_parse,
+        extract_article_content,
     )  # type: ignore
     from web_search_sdk.scrapers.base import ScraperContext  # type: ignore
+    print("✅ SDK imported successfully (development mode)")
 
 async def main(term: str):
+    print(f"\n🔍 Testing term: '{term}'")
+    print("=" * 50)
+    
     ctx = ScraperContext(use_browser=False, debug=False)
 
     tasks = [
@@ -66,17 +75,38 @@ async def main(term: str):
         wikipedia_top_words(term, ctx=ctx, top_n=10),
         related_words(term, ctx=ctx),
         google_news_top_words(term, ctx=ctx, top_n=10),
+        search_and_parse(term, ctx=ctx, top_n=5),
     ]
 
-    gw, wp, rw, gn = await asyncio.gather(*tasks, return_exceptions=True)
+    gw, wp, rw, gn, sp = await asyncio.gather(*tasks, return_exceptions=True)
 
-    print("\n=== Smoke-test results ===")
-    pprint.pp({
+    print("\n📊 SMOKE TEST RESULTS")
+    print("=" * 50)
+    
+    results = {
         "google_web_top_words": gw,
         "wikipedia_top_words": wp,
         "related_words": rw,
         "google_news_top_words": gn,
-    })
+        "search_and_parse": sp,
+    }
+    
+    for name, result in results.items():
+        print(f"\n🔸 {name}:")
+        if isinstance(result, Exception):
+            print(f"   ❌ Error: {result}")
+        else:
+            if name == "search_and_parse":
+                # Special handling for structured results
+                if isinstance(result, dict) and "results" in result:
+                    print(f"   ✅ Success: {len(result.get('results', []))} structured results")
+                else:
+                    print(f"   ✅ Success: {len(result.get('links', []))} links, {len(result.get('tokens', []))} tokens")
+            else:
+                print(f"   ✅ Success: {result[:5]}{'...' if len(result) > 5 else ''}")
+    
+    print("\n" + "=" * 50)
+    print("✅ Smoke test completed")
 
 if __name__ == "__main__":
     asyncio.run(main(sys.argv[1] if len(sys.argv) > 1 else "openai")) 

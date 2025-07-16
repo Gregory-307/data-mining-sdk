@@ -1,0 +1,4 @@
+term,top5
+bitcoin,<coroutine object _parse_wrapper at 0x000001B0616E7840>
+ethereum,<coroutine object _parse_wrapper at 0x000001B0616E7CA0>
+dogecoin,<coroutine object _parse_wrapper at 0x000001B0616E7A00>

@@ -224,6 +224,8 @@ report is available for inspection in GitHub Actions.
 ---
 For roadmap & detailed progress see **Progress_Report_v0.2.0.md**.
 
+**Quick Reference**: See **[docs/CHEATSHEET.md](docs/CHEATSHEET.md)** for a consolidated quick reference guide.
+
 ---
 ## License
 
