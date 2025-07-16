@@ -290,7 +290,13 @@ async def _fetch_html(url: str, ctx: ScraperContext) -> str:
     
     # Try HTTP first
     try:
-        async with httpx.AsyncClient(timeout=ctx.timeout, proxies=ctx.proxy) as client:
+        # Pass proxy param **only** when a proxy string is provided – httpx will raise
+        # if we send `proxies=None`.
+        client_kwargs = {"timeout": ctx.timeout}
+        if ctx.proxy:
+            client_kwargs["proxies"] = ctx.proxy
+
+        async with httpx.AsyncClient(**client_kwargs) as client:
             headers = ctx.headers.copy()
             headers.setdefault("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             headers.setdefault("Accept-Language", "en-US,en;q=0.9")
@@ -342,7 +348,10 @@ async def extract_article_content(
         - source: Source name (e.g., "CNBC", "BLOOMBERG")
         - url: Original URL
     """
-    ctx = ctx or ScraperContext()
+
+    # Default: enable browser fallback because many publishers block plain HTTP.
+    if ctx is None:
+        ctx = ScraperContext(use_browser=True, browser_type="playwright_stealth")
     
     # Fetch HTML
     html = await _fetch_html(url, ctx)

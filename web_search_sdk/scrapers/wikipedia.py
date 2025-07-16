@@ -57,7 +57,12 @@ async def _fetch_html(term: str, ctx: ScraperContext) -> str:
     url = BASE_URL.format(term.replace(" ", "_"))
     for attempt in range(ctx.retries + 1):
         try:
-            async with httpx.AsyncClient(timeout=ctx.timeout, proxies=ctx.proxy) as client:
+            # Only send proxies kwarg when a proxy string is provided.
+            client_kwargs = {"timeout": ctx.timeout}
+            if ctx.proxy:
+                client_kwargs["proxies"] = ctx.proxy
+
+            async with httpx.AsyncClient(**client_kwargs) as client:
                 resp = await client.get(url, headers=headers, follow_redirects=True)
                 resp.raise_for_status()
                 return resp.text
