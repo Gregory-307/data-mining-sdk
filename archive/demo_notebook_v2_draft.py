@@ -46,8 +46,15 @@ if not REPO_DIR.exists():
 
 ROOT = REPO_DIR.resolve()
 
+# Uninstall existing package to avoid version conflicts
+try:
+    subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "-y", "web-search-sdk"], 
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+except:
+    pass  # Package might not be installed
+
 # Install SDK (editable) + Playwright package & browsers – always runs, safe and idempotent
-subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "-e", f"{ROOT}[browser]"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--no-cache-dir", "-e", f"{ROOT}[browser]"])
 subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "playwright"])
 subprocess.check_call([sys.executable, "-m", "playwright", "install", "--with-deps"], stdout=subprocess.DEVNULL)
 

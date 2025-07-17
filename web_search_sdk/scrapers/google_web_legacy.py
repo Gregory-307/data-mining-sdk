@@ -1,8 +1,21 @@
 from __future__ import annotations
+import warnings
 
 """Legacy Google Web-Search scraper (synchronous).
 (Copied from migration_package for web_search_sdk subset.)
+
+DEPRECATED: This module is kept for internal fallback only. Use the async
+google_web.py module instead.
+
+INTERNAL USE ONLY: Do not import this module in user code.
 """
+
+warnings.warn(
+    "google_web_legacy module is deprecated and will be removed in a future version. "
+    "Use the async google_web module instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from typing import List
 from collections import Counter

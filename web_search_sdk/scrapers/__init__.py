@@ -36,5 +36,26 @@ __all__ = [
     "search_and_parse",
 ]
 
-from .google_web import google_web_top_words  # noqa: F401
-from .duckduckgo_web import duckduckgo_top_words  # noqa: F401 
+# Legacy imports with deprecation warnings
+import warnings
+
+def _import_with_warning(module_name: str, function_name: str):
+    """Import a function from a deprecated module with a warning."""
+    warnings.warn(
+        f"{module_name} module is deprecated and will be removed in a future version. "
+        f"Use the enhanced modules instead.",
+        DeprecationWarning,
+        stacklevel=3
+    )
+    if module_name == "google_web":
+        from .google_web import google_web_top_words
+        return google_web_top_words
+    elif module_name == "duckduckgo_web":
+        from .duckduckgo_web import duckduckgo_top_words
+        return duckduckgo_top_words
+    else:
+        raise ImportError(f"Unknown deprecated module: {module_name}")
+
+# Import deprecated functions with warnings
+google_web_top_words = _import_with_warning("google_web", "google_web_top_words")
+duckduckgo_top_words = _import_with_warning("duckduckgo_web", "duckduckgo_top_words") 

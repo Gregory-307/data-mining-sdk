@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 DuckDuckGo Web Search scraper (async)
 ------------------------------------
@@ -9,9 +11,20 @@ Google blocks or captchas become an issue.
 The implementation purposely keeps the dependency footprint identical to
 other scrapers in *web_search_sdk* (httpx + BeautifulSoup) and borrows the
 same tokenisation helpers so we get consistent output across engines.
+
+DEPRECATED: This module is kept for internal fallback only. Use the enhanced
+duckduckgo_enhanced.py module instead.
+
+INTERNAL USE ONLY: Do not import this module in user code.
 """
 
-from __future__ import annotations
+import warnings
+warnings.warn(
+    "duckduckgo_web module is deprecated and will be removed in a future version. "
+    "Use the enhanced duckduckgo_enhanced module instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 import asyncio
 import random

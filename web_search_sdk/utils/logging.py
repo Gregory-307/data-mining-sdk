@@ -1,3 +1,4 @@
+
 """Structured logging helper using structlog."""
 # If structlog is unavailable (e.g., minimal runtime env) we fall back to a
 # no-op shim that preserves the public API (get_logger) so callers continue
@@ -5,6 +6,16 @@
 
 import logging
 import os
+import asyncio
+from types import MethodType
+from typing import Any, Dict
+
+try:
+    import httpx
+    import requests
+except ImportError:  # pragma: no cover – optional dependencies
+    httpx = None
+    requests = None
 
 try:
     import structlog  # type: ignore
@@ -97,4 +108,103 @@ def get_logger(name: str | None = None):
         return _LOGGER_CACHE[name]
     logger = structlog.get_logger(name)
     _LOGGER_CACHE[name] = logger
-    return logger 
+    return logger
+
+
+# ---------------------------------------------------------------------------
+# HTTP logging patches (httpx and requests)
+# ---------------------------------------------------------------------------
+
+def _setup_httpx_logging():
+    """Patch httpx.AsyncClient to log all requests/responses when DEBUG_SCRAPERS=1."""
+    if not httpx or os.getenv("DEBUG_SCRAPERS") not in {"1", "true", "True"}:
+        return
+    
+    if getattr(httpx, "_patched_for_logging", False):
+        return
+    
+    _orig_send = httpx.AsyncClient.send
+
+    async def _patched_send(self: httpx.AsyncClient, request: httpx.Request, *args, **kwargs):  # type: ignore[override]
+        # Acquire logger lazily at call time so downstream monkey-patches on
+        # `get_logger("httpx")` are respected (important for unit tests).
+        logger = get_logger("httpx")
+        logger.info(
+            "request",
+            method=request.method,
+            url=str(request.url),
+            headers=dict(request.headers),
+        )
+        response = await _orig_send(self, request, *args, **kwargs)
+
+        # read() consumes the stream only once – cache content, then assign back
+        content = await response.aread()
+        body_len = len(content)
+        preview_text = None
+        if os.getenv("DEBUG_TRACE") in {"1", "true", "True"}:
+            preview_slice = content[:1024]
+            try:
+                preview_text = preview_slice.decode("utf-8", errors="replace")
+            except Exception:
+                preview_text = str(preview_slice)
+
+        log_kwargs = {
+            "status": response.status_code,
+            "url": str(response.request.url),
+            "headers": dict(response.headers),
+            "body_len": body_len,
+        }
+        if preview_text is not None:
+            log_kwargs["preview"] = preview_text
+
+        logger.info("response", **log_kwargs)
+
+        # Restore body for downstream consumers
+        response._content = content  # type: ignore[attr-defined]
+        response._content_consumed = True  # type: ignore[attr-defined]
+        return response
+
+    # Override class attribute directly; Python binds functions to instances automatically.
+    httpx.AsyncClient.send = _patched_send  # type: ignore[assignment]
+    httpx._patched_for_logging = True  # type: ignore[attr-defined]
+
+
+def _setup_requests_logging():
+    """Patch requests.Session to log all requests/responses when DEBUG_SCRAPERS=1."""
+    if not requests or os.getenv("DEBUG_SCRAPERS") not in {"1", "true", "True"}:
+        return
+    
+    if getattr(requests, "_patched_for_logging", False):
+        return
+    
+    logger = get_logger("requests")
+    _orig_request = requests.Session.request  # type: ignore[attr-defined]
+
+    def _patched_request(self: requests.Session, method: str, url: str, *args: Any, **kwargs: Any):  # type: ignore[override]
+        headers: Dict[str, str] | None = kwargs.get("headers")
+        logger.info("request", method=method, url=url, headers=headers or {})
+
+        resp: requests.Response = _orig_request(self, method, url, *args, **kwargs)
+
+        body_len = len(resp.content) if resp.content is not None else 0
+        log_kwargs: Dict[str, Any] = {
+            "status": resp.status_code,
+            "url": resp.url,
+            "headers": dict(resp.headers),
+            "body_len": body_len,
+        }
+
+        if os.getenv("DEBUG_TRACE") in {"1", "true", "True"}:
+            preview = resp.text[:1024]
+            log_kwargs["preview"] = preview
+
+        logger.info("response", **log_kwargs)
+        return resp
+
+    requests.Session.request = _patched_request  # type: ignore[assignment]
+    requests._patched_for_logging = True  # type: ignore[attr-defined]
+
+
+# Auto-setup logging patches on import
+_setup_httpx_logging()
+_setup_requests_logging() 

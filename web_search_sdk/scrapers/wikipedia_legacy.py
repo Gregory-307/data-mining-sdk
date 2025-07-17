@@ -1,8 +1,21 @@
 from __future__ import annotations
+import warnings
 
 """Legacy Wikipedia scraper based on Newspaper3k Article extraction.
 Falls back to original method for compatibility.
+
+DEPRECATED: This module is kept for internal fallback only. Use the async
+wikipedia.py module instead.
+
+INTERNAL USE ONLY: Do not import this module in user code.
 """
+
+warnings.warn(
+    "wikipedia_legacy module is deprecated and will be removed in a future version. "
+    "Use the async wikipedia module instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from typing import List
 from collections import Counter
