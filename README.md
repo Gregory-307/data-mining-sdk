@@ -2,6 +2,10 @@
 
 [![Try it in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1NJD7hqfaubKKEzk7XmtXaApMLPKJKdge#scrollTo=jjvjnyumbsZM)
 
+
+GENERATED README - TOO BUSY TO WRITE README RN, WROTE DEMO INSTEAD ABOVE (but this readme isn't bad I worked with it a bit)
+
+
 This repository houses an **async Python toolkit** for collecting and preprocessing publicly available web data that can later feed into downstream analytics or trading pipelines.
 
 The helpers here grew out of our internal *Stock-Algorithm* work-bench; they have been extracted and cleaned up so that they can operate **stand-alone** and slot easily into other code-bases.
