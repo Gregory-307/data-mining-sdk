@@ -304,11 +304,25 @@ async def _fetch_html(url: str, ctx: ScraperContext) -> str:
             resp = await client.get(url, headers=headers, follow_redirects=True)
             resp.raise_for_status()
             html = resp.text
-            
-            if len(html) > 1000:  # Reasonable content length
+
+            # Detect common CDN block pages – they often exceed 1 kB but have no real article.
+            _block_markers = [
+                "Access Denied",        # Akamai / CloudFront
+                "Captcha",              # generic captcha page
+                "are you a robot",      # Cloudflare / Bloomberg
+                "Request blocked",      # generic block
+            ]
+
+            blocked = any(m.lower() in html.lower() for m in _block_markers)
+
+            if len(html) > 1000 and not blocked:
                 if ctx.debug:
                     logger.info("http_success", url=url, length=len(html))
                 return html
+
+            # Otherwise treat as failure so we can fall back to browser.
+            if ctx.debug and blocked:
+                logger.info("http_blocked", url=url)
     except Exception as e:
         if ctx.debug:
             logger.warning("http_failed", url=url, error=str(e))
