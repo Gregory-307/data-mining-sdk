@@ -15,6 +15,19 @@ from urllib.parse import urlparse
 import asyncio
 from web_search_sdk.utils.text import tokenise, most_common
 
+from urllib.parse import urlparse, parse_qs, unquote
+
+def _unwrap_ddg_url(ddg_url: str) -> str:
+    """Return the real target URL if *ddg_url* is a DuckDuckGo redirect stub."""
+    if "duckduckgo.com/l/" in ddg_url:
+        try:
+            q = parse_qs(urlparse(ddg_url).query)
+            if "uddg" in q:
+                return unquote(q["uddg"][0])
+        except Exception:
+            pass
+    return ddg_url
+
 logger = get_logger("DDG-Enhanced")
 
 __all__ = ["ddg_search_and_parse", "ddg_search_raw"]
@@ -61,7 +74,8 @@ def _parse_html(html: str, top_n: int = 10) -> Dict[str, Any]:
         url_node = result.select_one("a.result__a")
         title = title_node.get_text(" ", strip=True) if title_node else None
         snippet = snippet_node.get_text(" ", strip=True) if snippet_node else None
-        url = url_node["href"] if url_node and url_node.has_attr("href") else None
+        url_raw = url_node["href"] if url_node and url_node.has_attr("href") else None
+        url = _unwrap_ddg_url(url_raw) if url_raw else None
         if url:
             links.append(url)
         if title or snippet or url:
