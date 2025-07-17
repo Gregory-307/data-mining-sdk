@@ -6,7 +6,7 @@ import pytest
 import asyncio
 from unittest.mock import patch, AsyncMock
 from web_search_sdk.scrapers.article_extractor import extract_article_content
-from web_search_sdk.scrapers.duckduckgo_enhanced import duckduckgo_search_enhanced
+from web_search_sdk.scrapers.duckduckgo_enhanced import ddg_search_and_parse
 from web_search_sdk.scrapers.base import ScraperContext
 
 
@@ -82,7 +82,7 @@ class TestExtractArticleContent:
 
 
 class TestDuckDuckGoSearchEnhanced:
-    """Test the duckduckgo_search_enhanced function."""
+    """Test the ddg_search_and_parse function."""
     
     @pytest.mark.asyncio
     async def test_duckduckgo_search_enhanced_success(self):
@@ -107,7 +107,7 @@ class TestDuckDuckGoSearchEnhanced:
             mock_fetch.return_value = mock_html
             
             ctx = ScraperContext()
-            result = await duckduckgo_search_enhanced("bitcoin", ctx)
+            result = await ddg_search_and_parse("bitcoin", ctx)
             
             assert "links" in result
             assert "tokens" in result
@@ -135,7 +135,7 @@ class TestDuckDuckGoSearchEnhanced:
             mock_fetch.return_value = "<html><body><div>No results found</div></body></html>"
             
             ctx = ScraperContext()
-            result = await duckduckgo_search_enhanced("nonexistent_term", ctx)
+            result = await ddg_search_and_parse("nonexistent_term", ctx)
             
             assert result["links"] == []
             assert result["tokens"] == []
@@ -150,7 +150,7 @@ class TestDuckDuckGoSearchEnhanced:
             ctx = ScraperContext()
             # The function should raise the exception, so we expect it
             with pytest.raises(Exception, match="Search failed"):
-                await duckduckgo_search_enhanced("bitcoin", ctx)
+                await ddg_search_and_parse("bitcoin", ctx)
 
 
 class TestEnhancedSearchIntegration:
@@ -162,7 +162,7 @@ class TestEnhancedSearchIntegration:
         from web_search_sdk.scrapers.search import search_and_parse
         
         # Mock enhanced search to fail
-        with patch('web_search_sdk.scrapers.duckduckgo_enhanced.duckduckgo_search_enhanced', new_callable=AsyncMock) as mock_enhanced:
+        with patch('web_search_sdk.scrapers.duckduckgo_enhanced.ddg_search_and_parse', new_callable=AsyncMock) as mock_enhanced:
             mock_enhanced.side_effect = Exception("Enhanced search failed")
             
             # Mock basic search to succeed

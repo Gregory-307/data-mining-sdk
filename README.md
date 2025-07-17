@@ -1,5 +1,11 @@
 # Web-Search SDK
 
+[![Try it in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1NJD7hqfaubKKEzk7XmtXaApMLPKJKdge#scrollTo=jjvjnyumbsZM)
+
+
+GENERATED README - TOO BUSY TO WRITE README RN, WROTE DEMO INSTEAD ABOVE (but this readme isn't bad I worked with it a bit)
+
+
 This repository houses an **async Python toolkit** for collecting and preprocessing publicly available web data that can later feed into downstream analytics or trading pipelines.
 
 The helpers here grew out of our internal *Stock-Algorithm* work-bench; they have been extracted and cleaned up so that they can operate **stand-alone** and slot easily into other code-bases.
@@ -40,10 +46,12 @@ source .venv/bin/activate        # Linux/macOS
 # .venv\Scripts\activate.bat     # Windows PowerShell
 
 # 2 – install the core package in **editable** mode
-pip install -e .                 # or ".[test]", ".[browser]" (see below)
-```
+pip install -e .                 # Core package only
 
-Optional extras (quick): `browser` for headless Playwright, `test` for pytest.  Full matrix → see [Progress_Report_v0.2.0.md](Progress_Report_v0.2.0.md).
+# Optional extras for advanced features:
+pip install -e ".[browser]"      # + Playwright/Selenium for paywalls & CAPTCHAs
+pip install -e ".[test]"         # + pytest for development
+pip install -e ".[browser,test]" # + Both extras
 
 Run (choose browser engine):
     python demo.py --term "btc rally" --url "https://www.bloomberg.com/..." --engine selenium
@@ -222,9 +230,14 @@ report is available for inspection in GitHub Actions.
 4. Document the new feature in this README.
 
 ---
-For roadmap & detailed progress see **Progress_Report_v0.2.0.md**.
+## Documentation & Resources
 
-**Quick Reference**: See **[docs/CHEATSHEET.md](docs/CHEATSHEET.md)** for a consolidated quick reference guide.
+- **📓 [Interactive Demo](https://colab.research.google.com/drive/1NJD7hqfaubKKEzk7XmtXaApMLPKJKdge#scrollTo=jjvjnyumbsZM)** - Try the SDK in Colab
+- **📋 [Quick Reference](docs/CHEATSHEET.md)** - API cheat sheet and examples
+- **🗺️ [Grand Plan](GrandPlan/)** - Roadmap and detailed planning documents
+- **🤝 [Contributing](CONTRIBUTING.md)** - How to contribute to the project
+
+For roadmap & detailed progress see **GrandPlan/Progress_Report_v0.2.0.md**.
 
 ---
 ## License

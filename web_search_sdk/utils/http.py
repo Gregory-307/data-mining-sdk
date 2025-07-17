@@ -12,10 +12,13 @@ from __future__ import annotations
 
 import asyncio
 import random
-from contextlib import asynccontextmanager
-from typing import AsyncIterator, Dict, List, Optional
 import time
+from contextlib import asynccontextmanager
+from functools import wraps
+from typing import AsyncIterator, Awaitable, Callable, Dict, List, Optional, TypeVar
 import os
+
+T = TypeVar("T")
 
 OFFLINE_MODE = os.getenv("OFFLINE_MODE") in {"1", "true", "True"}
 
@@ -54,7 +57,7 @@ from .logging import get_logger
 
 logger = get_logger("utils.http")
 
-__all__ = ["get_async_client", "fetch_text"]
+__all__ = ["get_async_client", "fetch_text", "rate_limited"]
 
 # ---------------------------------------------------------------------------
 # Default UA list (very small; caller can supply custom list)
@@ -167,4 +170,47 @@ async def fetch_text(
             await asyncio.sleep(0.5 * 2**attempt)
 
     # Should never reach here
-    raise RuntimeError("fetch_text: exceeded retries without exception") 
+    raise RuntimeError("fetch_text: exceeded retries without exception")
+
+
+# ---------------------------------------------------------------------------
+# Rate limiting utilities
+# ---------------------------------------------------------------------------
+
+def rate_limited(*, calls: int, period: float):
+    """Decorator limiting *calls* within *period* seconds per coroutine group.
+
+    Usage::
+
+        from web_search_sdk.utils.http import rate_limited
+
+        @rate_limited(calls=5, period=1)  # 5 calls per second
+        async def fetch(...):
+            ...
+    """
+
+    bucket = calls
+    reset_at = time.monotonic() + period
+    lock = asyncio.Lock()
+
+    def decorator(fn: Callable[..., Awaitable[T]]):
+        @wraps(fn)
+        async def wrapper(*args, **kwargs) -> T:  # type: ignore[override]
+            nonlocal bucket, reset_at
+            async with lock:
+                now = time.monotonic()
+                if now >= reset_at:
+                    bucket = calls
+                    reset_at = now + period
+                if bucket == 0:
+                    sleep_for = reset_at - now
+                    await asyncio.sleep(max(sleep_for, 0))
+                    bucket = calls - 1
+                    reset_at = time.monotonic() + period
+                else:
+                    bucket -= 1
+            return await fn(*args, **kwargs)
+
+        return wrapper
+
+    return decorator 

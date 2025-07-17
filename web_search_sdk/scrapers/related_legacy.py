@@ -1,9 +1,22 @@
 from __future__ import annotations
+import warnings
 
 """Legacy RelatedWords scraper using simple HTML parsing (synchronous).
 Intentionally preserved from the original code path for cases where the new
 JSON API is blocked.
+
+DEPRECATED: This module is kept for internal fallback only. Use the async
+related.py module instead.
+
+INTERNAL USE ONLY: Do not import this module in user code.
 """
+
+warnings.warn(
+    "related_legacy module is deprecated and will be removed in a future version. "
+    "Use the async related module instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 import os, random, json, re
 import requests

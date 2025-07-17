@@ -3,7 +3,8 @@ from .scrapers import (
     google_news_top_words, google_news, google_news_raw, google_web_top_words,
     extract_article_content, ddg_search_and_parse, ddg_search_raw, search_and_parse
 )
-from .utils import http_logging, requests_logging  # noqa: F401
+# Import logging functionality from the consolidated module
+from .utils import logging  # noqa: F401
 
 __all__ = [
     "related_words",

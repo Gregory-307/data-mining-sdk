@@ -327,17 +327,40 @@ async def _fetch_html(url: str, ctx: ScraperContext) -> str:
         if ctx.debug:
             logger.warning("http_failed", url=url, error=str(e))
     
-    # Browser fallback if enabled
+    # Browser fallback if enabled --------------------------------------------------
     if ctx.use_browser:
+        # First try with the configured browser_type (Playwright or Selenium)
         try:
             html = await br.fetch_html("_article", lambda _t: url, ctx)
             if html and len(html) > 1000:
                 if ctx.debug:
-                    logger.info("browser_success", url=url, length=len(html))
+                    logger.info("browser_success", url=url, length=len(html), engine=ctx.browser_type)
                 return html
         except Exception as e:
             if ctx.debug:
-                logger.warning("browser_failed", url=url, error=str(e))
+                logger.warning("browser_failed", url=url, error=str(e), engine=ctx.browser_type)
+
+        # Extra fallback: if initial attempt used Playwright, try Selenium once ----
+        if ctx.browser_type.startswith("playwright") and br._SEL_AVAILABLE:
+            ctx_sel = ScraperContext(
+                headers=ctx.headers,
+                timeout=ctx.timeout,
+                retries=ctx.retries,
+                user_agents=ctx.user_agents,
+                proxy=ctx.proxy,
+                use_browser=True,
+                debug=ctx.debug,
+                browser_type="selenium",
+            )
+            try:
+                html = await br.fetch_html("_article", lambda _t: url, ctx_sel)
+                if html and len(html) > 1000:
+                    if ctx.debug:
+                        logger.info("browser_success", url=url, length=len(html), engine="selenium")
+                    return html
+            except Exception as e:
+                if ctx.debug:
+                    logger.warning("browser_failed", url=url, error=str(e), engine="selenium")
     
     return ""
 

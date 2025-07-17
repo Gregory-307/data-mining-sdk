@@ -6,6 +6,8 @@
 
 ## 🚀 Quick Start
 
+**📓 Try it in Colab**: [Open the full demo notebook](https://colab.research.google.com/drive/1NJD7hqfaubKKEzk7XmtXaApMLPKJKdge#scrollTo=jjvjnyumbsZM)
+
 ```python
 import asyncio
 from web_search_sdk.scrapers import wikipedia_top_words

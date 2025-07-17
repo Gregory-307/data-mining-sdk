@@ -1,8 +1,21 @@
 from __future__ import annotations
+import warnings
 
 """Legacy Google News HTML scraper.
 Searches the standard news.google.com/search page and extracts headline text.
+
+DEPRECATED: This module is kept for internal fallback only. Use the async
+news.py module instead.
+
+INTERNAL USE ONLY: Do not import this module in user code.
 """
+
+warnings.warn(
+    "news_legacy module is deprecated and will be removed in a future version. "
+    "Use the async news module instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from typing import List
 from collections import Counter

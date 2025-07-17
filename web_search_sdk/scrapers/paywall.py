@@ -1,11 +1,25 @@
+from __future__ import annotations
+
 """Paywalled source helpers (Bloomberg, CNBC).
 
 These helpers use the generic browser.fetch_html() fallback when `ctx.use_browser`
  is True.  If a full browser render is not requested, they attempt a quick
  `httpx` GET first to keep things lightweight (KISS).  The parsed article text
  is returned as a raw string so callers can post-process (tokenise, sentiment, …).
+
+DEPRECATED: This module is kept for backward compatibility only. Use the generic
+article_extractor.py module instead.
+
+INTERNAL USE ONLY: Do not import this module in user code.
 """
-from __future__ import annotations
+
+import warnings
+warnings.warn(
+    "paywall module is deprecated and will be removed in a future version. "
+    "Use the generic article_extractor module instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 import httpx
 from bs4 import BeautifulSoup
