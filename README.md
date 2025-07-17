@@ -3,7 +3,7 @@
 [![Try it in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1NJD7hqfaubKKEzk7XmtXaApMLPKJKdge#scrollTo=jjvjnyumbsZM)
 
 
-GENERATED README - TOO BUSY TO WRITE README RN, WROTE DEMO INSTEAD ABOVE (but this readme isn't bad I worked with it a bit)
+GENERATED README - TOO BUSY TO WRITE README RN, WROTE DEMO INSTEAD ABOVE
 
 
 This repository houses an **async Python toolkit** for collecting and preprocessing publicly available web data that can later feed into downstream analytics or trading pipelines.
