@@ -88,7 +88,11 @@ async def _fetch_html(term: str, ctx: ScraperContext) -> str:
 
     for attempt in range(ctx.retries + 1):
         try:
-            async with httpx.AsyncClient(timeout=ctx.timeout, proxies=ctx.proxy) as client:
+            client_kwargs = {"timeout": ctx.timeout}
+            if ctx.proxy:
+                client_kwargs["proxies"] = ctx.proxy
+
+            async with httpx.AsyncClient(**client_kwargs) as client:
                 resp = await client.get(url, headers=headers, follow_redirects=True)
                 resp.raise_for_status()
                 return resp.text
@@ -196,6 +200,7 @@ async def duckduckgo_top_words(
         print("💡 Tip: duckduckgo_top_words works fine with HTTP context (faster). Browser context is optional.")
 
     def _parse_wrapper(html: str, t: str, c: ScraperContext):
-        return _parse_html(html, t, c, top_n)
+        # _parse_html expects only (html, top_n)
+        return _parse_html(html, top_n)
 
     return await run_scraper(term, _fetch_html, _parse_wrapper, ctx) 
